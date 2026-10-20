@@ -1,0 +1,23 @@
+# Environment files
+.env.docker
+.env
+*.env
+
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.suo
+*.user
+
+# TypeScript build metadata
+*.tsbuildinfo
