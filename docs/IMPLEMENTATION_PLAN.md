@@ -117,6 +117,8 @@ These questions materially affect architecture. The coordinator should prepare a
 
 ### M1.7 Add service readiness and useful startup errors
 
+**Status: Done (2026-10-21).** `GET /health/ready` runs `SELECT 1`, returns only `{"status":"ready"}` (200) or `{"status":"not_ready"}` (503), and never serializes database errors. Initial Prisma connection failure logs a generic actionable warning and does not prevent Nest from serving readiness. Compose health-checks the endpoint and gates frontend start on backend health. Disposable full-stack validation confirmed healthy startup, not-ready/unhealthy during MySQL outage, and recovery after MySQL restart. Backend tests/lint/build pass.
+
 - **Task:** Add a health/readiness endpoint and ensure a missing database/configuration reports a clear service-level failure.
 - **Acceptance:** Health indicates whether the API can reach the database; orchestration can wait for the API before the frontend is considered ready.
 - **Depends on:** M1.5.

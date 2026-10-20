@@ -68,7 +68,7 @@ After creating `.env`, validate and start the local stack from the repository ro
 
 ```powershell
 docker compose config
-docker compose up --build
+docker compose up --build --renew-anon-volumes
 ```
 
 The backend startup sequence runs `npm run db:init` before launching NestJS. To initialize a database manually from `backend/`, run `npm run db:init`; it executes `prisma migrate deploy` followed by `prisma db seed`. Both operations are repeatable: migrations apply only pending migrations, and category seeding uses the unique `(name, type)` key with `upsert`.
@@ -85,7 +85,7 @@ npm run db:init
 
 Expected result: the first run applies the initial migration and creates ten default categories; the second reports no pending migrations and leaves exactly ten defaults. Stop and remove this disposable service afterward with `docker compose -f docker-compose.test.yml down` from the repository root. The test service binds to host loopback and uses a temporary filesystem with no persistent volume. Do not point these commands at any database containing user data.
 
-The normal local stack starts with `docker compose up --build`. Compose waits for MySQL health before the backend runs migrations and seeds; API/database published ports remain bound to host loopback. Complete M1.7–M1.9 before treating this as fully end-to-end verified.
+Compose waits for MySQL health before the backend runs migrations and seeds, then waits for API readiness before starting the frontend. Backend readiness checks MySQL with a lightweight `SELECT 1` query. `GET http://127.0.0.1:3000/health/ready` returns HTTP 200 with `{"status":"ready"}` when MySQL is reachable, or HTTP 503 with `{"status":"not_ready"}` when it is unavailable. The response does not include connection details. The backend logs a generic startup warning if the initial database connection fails and stays available for readiness probes. All published ports remain bound to host loopback. Complete M1.8–M1.9 before treating the app as fully end-to-end verified.
 
 The disposable test database uses separate synthetic credentials in `docker-compose.test.yml`, stores MySQL data in tmpfs, and binds only to `127.0.0.1:3307`.
 
