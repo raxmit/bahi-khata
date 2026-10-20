@@ -109,6 +109,8 @@ These questions materially affect architecture. The coordinator should prepare a
 
 ### M1.6 Make Compose configuration safe and reproducible
 
+**Status: Done (2026-10-21).** Both development images use Node 24 to match CI. Compose requires explicit values from the ignored root `.env`, with a development-only `.env.example`; backend/frontend build contexts exclude env files. Main and test Compose configurations parse successfully and all published ports are loopback-only. Backend lint, tests, and build pass.
+
 - **Task:** Align Node container versions with the supported project runtime, make environment configuration explicit, and document local-only credentials/ports.
 - **Acceptance:** Compose uses an example env file or documented defaults, production credentials are not baked into images, and startup health dependencies are clear.
 - **Depends on:** M1.5.

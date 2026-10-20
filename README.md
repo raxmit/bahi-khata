@@ -22,9 +22,19 @@ Use synthetic financial records in development and tests. Do not expose the API 
 
 ## Prerequisites
 
-- Node.js 24.x (align Dockerfiles with this runtime as tracked in the plan).
+- Node.js 24.x, matching CI and the development Docker images.
 - npm 11 compatible with the checked-in lockfiles.
 - Docker Desktop / Docker Engine and Docker Compose for the full local stack.
+
+## Configure local Compose values
+
+From the repository root, create the ignored local Compose environment file:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+`.env.example` contains synthetic development-only MySQL credentials and connection settings. `.env` is ignored by Git, and backend/frontend Docker build contexts exclude environment files. Keep these values local, change the sample values for your machine if needed, and keep `COMPOSE_DATABASE_URL` in sync with the MySQL database/user/password. Do not put production credentials or real financial data in these files. The Compose stack binds all published service ports to `127.0.0.1`.
 
 ## Install dependencies
 
@@ -54,9 +64,10 @@ The frontend suite now includes app-shell, `/api` routing, and exact INR behavio
 
 ## Run locally
 
-The intended full stack is:
+After creating `.env`, validate and start the local stack from the repository root:
 
 ```powershell
+docker compose config
 docker compose up --build
 ```
 
@@ -67,16 +78,16 @@ To exercise clean and repeated initialization using only a disposable database, 
 ```powershell
 docker compose -f docker-compose.test.yml up -d --wait
 cd backend
-$env:DATABASE_URL = 'mysql://pfuser:pfpass@127.0.0.1:3307/pftracker_test'
+$env:DATABASE_URL = 'mysql://pfuser:test_only_pf_password@127.0.0.1:3307/pftracker_test'
 npm run db:init
 npm run db:init
 ```
 
 Expected result: the first run applies the initial migration and creates ten default categories; the second reports no pending migrations and leaves exactly ten defaults. Stop and remove this disposable service afterward with `docker compose -f docker-compose.test.yml down` from the repository root. The test service binds to host loopback and uses a temporary filesystem with no persistent volume. Do not point these commands at any database containing user data.
 
-The normal local stack starts with `docker compose up --build`. Compose waits for MySQL health before the backend runs migrations and seeds; API/database published ports remain bound to host loopback. Complete M1.6–M1.9 before treating this as fully end-to-end verified.
+The normal local stack starts with `docker compose up --build`. Compose waits for MySQL health before the backend runs migrations and seeds; API/database published ports remain bound to host loopback. Complete M1.7–M1.9 before treating this as fully end-to-end verified.
 
-For configuration, see `.env.docker.example` and `backend/.env.example`. These contain development-only values. Never reuse them as production credentials.
+The disposable test database uses separate synthetic credentials in `docker-compose.test.yml`, stores MySQL data in tmpfs, and binds only to `127.0.0.1:3307`.
 
 ## AI-assisted development
 

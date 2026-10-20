@@ -70,9 +70,9 @@ The root `docker-compose.yml` defines MySQL, Nest, and Angular containers. `dock
 ## Operational facts
 
 - Root README, adopted product decision brief, and release readiness report are present.
-- Root `.env.docker.example` contains development connection details. Compose host ports bind to loopback; keep credentials local-only. Production credentials must come from a secret store/environment if deployment is reconsidered later.
-- Dockerfiles use Node 20 Alpine while CI is configured for Node 24. Angular 21's declared supported range includes Node 24; align container and CI runtime versions as part of setup hardening.
-- The repository is on `main` at `5bb21f9` (`Initialize local database and seed defaults`), one commit ahead of `origin/main`. This project-state report has a pending update to record M1.5 validation; the implementation and release-readiness updates are included in the commit.
+- Root `.env.example` contains synthetic development connection details. Compose host ports bind to loopback; keep credentials local-only. Backend/frontend Docker build contexts exclude environment files. Production credentials must come from a secret store/environment if deployment is reconsidered later.
+- Development Dockerfiles use Node 24 Alpine, matching CI's Node 24 runtime. Root `.env.example` contains synthetic local-only settings; Compose requires the copied ignored `.env`, and Docker build contexts exclude env files. The disposable test Compose file uses separate synthetic test credentials and tmpfs.
+- The repository is on `main` at `5bb21f9` (`Initialize local database and seed defaults`), one commit ahead of `origin/main`, with local M1.6 changes pending. No push was performed.
 
 ## Verification boundary
 
