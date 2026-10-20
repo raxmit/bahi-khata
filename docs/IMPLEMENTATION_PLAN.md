@@ -130,15 +130,18 @@ These questions materially affect architecture. The coordinator should prepare a
 - **Depends on:** M1.2.
 - **Evidence:** Replaced the scaffold-title assertion with app-shell/router checks and provided router plus mocked startup state in the frontend test setup. The frontend suite passed 8 tests across 3 files, including app-shell and API route coverage; the production build passed.
 
-### M1.9 Exercise clean local startup
+### M1.9 Exercise clean local startup — Done (2026-10-21)
 
 - **Task:** Follow README setup from a clean checkout/database using only synthetic records; capture the exact commands and results.
 - **Acceptance:** Dashboard opens, seeded categories load, one synthetic transaction can be created, summary updates, and browser network calls reach API.
 - **Depends on:** M1.1-M1.8.
+- **Evidence:** Followed the README Compose startup against a new `bahi-khata-m19` project and newly created `bahi-khata-m19_mysql_data` volume. Headless Edge loaded the dashboard and all ten default categories. Submitting the UI form created exactly one synthetic `123.45` INR Food expense: browser `POST /api/transactions` returned HTTP 201, the refreshed transaction list and dashboard showed it, and Prisma confirmed one stored row plus ten defaults. The browser's `/api/categories`, `/api/transactions`, and `/api/summary` requests returned HTTP 200. Exact commands, results, transient harness failures, and cleanup are in [RELEASE_READINESS.md](RELEASE_READINESS.md#m1-9-end-to-end-local-verification).
 
 ## M2 — Financial and API correctness
 
 ### M2.1 Specify transaction date semantics
+
+**Decision brief prepared; awaiting user decision.** See [M2.1 date and timezone decision brief](M2.1_DATE_DECISION_BRIEF.md). Do not implement date-dependent behavior until the timezone and calendar policy are confirmed.
 
 - **Task:** Define date-only storage, accepted API format, timezone used for “today,” and period boundary rules.
 - **Acceptance:** Requirements state whether a date is interpreted in user timezone or a fixed app timezone, with examples for week/month/year edges.

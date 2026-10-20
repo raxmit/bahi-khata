@@ -1,16 +1,16 @@
 ﻿# Bahi Khata: Project State
 
 **Reviewed:** 2026-10-21  
-**Review type:** Static repository inspection plus frontend/backend checks and disposable MySQL migration/startup/readiness validation.
+**Review type:** Static repository inspection plus frontend/backend checks, disposable MySQL migration/startup/readiness validation, and M1.9 headless-browser verification.
 **Status vocabulary:** *Present* means code exists; it does not mean the flow is verified end to end.
 
 ## Executive summary
 
 Bahi Khata is a two-part personal-finance application: an Angular SPA in `frontend/` and a NestJS REST API in `backend/`, with Prisma targeting MySQL. The repository contains UI pages and server-side building blocks for transactions, categories, filters, and summaries.
 
-The adopted product baseline is MySQL as source of truth, single-owner, local-only API until authentication and owner authorization are implemented and verified, and INR amounts with exact two-decimal precision. These choices are recorded in [DECISION_BRIEF.md](DECISION_BRIEF.md), and the original requirements/design have been updated accordingly. The backend uses Prisma `Decimal(15,2)` and decimal-string API values; the frontend also uses decimal strings and exact formatting without JavaScript `number` conversion.
+The adopted product baseline is MySQL as source of truth, single-owner, local-only API until authentication and owner authorization are implemented and verified, and INR amounts with exact two-decimal precision. These choices are recorded in [DECISION_BRIEF.md](DECISION_BRIEF.md), and the original requirements/design have been updated accordingly. The backend uses Prisma `Decimal(15,2)` and decimal-string API values; the frontend also uses decimal strings and exact formatting without JavaScript `number` conversion. Date semantics remain undecided; [the M2.1 brief](M2.1_DATE_DECISION_BRIEF.md) recommends strict civil dates and `Asia/Kolkata`, pending user direction.
 
-The frontend test setup and stale assertion are repaired, and `/api` routing is configured for Angular development, Compose, and the example Nginx host. Local-only host binding and loopback Compose port publication are configured and Compose configuration parses successfully. The local dev proxy was exercised against a synthetic mock. Compose now runs Prisma migrations and idempotent default-category seeding before Nest starts, then gates frontend startup on API readiness. On a fresh disposable MySQL stack, the API reported ready (HTTP 200) when MySQL was available, not-ready (HTTP 503) without database details during an outage, and recovered after MySQL restarted. Compose marked the API unhealthy during the outage and healthy after recovery. The isolated project and its database volume were removed; no real financial data was used.
+The frontend test setup and stale assertion are repaired, and `/api` routing is configured for Angular development, Compose, and the example Nginx host. Local-only host binding and loopback Compose port publication are configured and Compose configuration parses successfully. Compose runs Prisma migrations and idempotent default-category seeding before Nest starts, then gates frontend startup on API readiness. M1.9 was exercised from the clean checkout at `d362c5f` against a new disposable Compose project and MySQL volume: headless Edge loaded the dashboard, showed all ten defaults, submitted one synthetic transaction through `/api`, and displayed it in the list and monthly summary. The browser recorded HTTP 201 for create and HTTP 200 for category, transaction, and summary requests; Prisma confirmed the row and seeded categories in MySQL. Earlier readiness checks verified healthy startup, not-ready response during a database outage, and recovery after MySQL restarted. No real financial data was used. Exact commands, results, transient harness failures, and cleanup are recorded in [RELEASE_READINESS.md](RELEASE_READINESS.md#m1-9-end-to-end-local-verification).
 
 ## Architecture as found
 
@@ -32,12 +32,12 @@ The root `docker-compose.yml` defines MySQL, Nest, and Angular containers. `dock
 
 | Area | Present in code | Main gap before it is dependable |
 |---|---|---|
-| App shell and navigation | Lazy routes for four pages; responsive side/bottom navigation; toast component; `/api` dev proxy | Proxy runtime verified with mock; routing through the real API/database remains unverified |
-| Transaction create/list/delete | API endpoints, repository, validator, create form, list, delete confirmation | No edit UI; no focused feature tests; backend PATCH validation currently treats partial input as missing required fields |
+| App shell and navigation | Lazy routes for four pages; responsive side/bottom navigation; toast component; `/api` dev proxy | M1.9 verified dashboard and same-origin browser requests through Compose to the real API/database; accessibility and viewport checks remain open |
+| Transaction create/list/delete | API endpoints, repository, validator, create form, list, delete confirmation | M1.9 verified one synthetic create and list refresh through the UI/API/MySQL; no edit UI; backend PATCH validation currently treats partial input as missing required fields |
 | Categories | API create/list/delete; default categories protected; idempotent seed runs at local startup; sorted lists | Category-to-transaction relationship is a free-text label; no reassignment flow |
 | Filters | Backend supports type, category array, and inclusive date bounds | UI only filters local state by type/date; no category filter; API response changes shape to `{matches, hasResults}` when filters are passed |
 | Insights | Weekly/monthly/yearly summary and monthly week breakdown on API and UI | No focused tests; date and timezone boundary behavior needs a defined policy and verification |
-| Persistence | MySQL + Prisma; initial migration verified on disposable MySQL; amounts use Decimal(15,2) and exact decimal-string API values; Compose applies migration and seeds defaults | No authentication/owner authorization; full browser-to-real-API/DB journey remains unverified |
+| Persistence | MySQL + Prisma; initial migration verified on disposable MySQL; amounts use Decimal(15,2) and exact decimal-string API values; Compose applies migration and seeds defaults; M1.9 verified one browser-created row in disposable MySQL | No authentication/owner authorization; broader journeys and existing-data migration/recovery remain unverified |
 | API readiness | `GET /health/ready` performs `SELECT 1`; Compose health-checks API and starts frontend only after readiness | Endpoint reports database reachability, not full application or frontend readiness |
 | Validation and errors | DTO validation, domain validator, exception filter, frontend interceptor/toasts | Error paths are inconsistently surfaced; app state logs raw request errors; note truncation notification is absent |
 | Reset/recovery | No reset UI/endpoint found | Requirement remains unimplemented; safe reset semantics must be defined before implementation |
@@ -48,7 +48,7 @@ The root `docker-compose.yml` defines MySQL, Nest, and Angular containers. `dock
 
 ### P0: startup and integration blockers
 
-1. The initial migration creates the expected schema on a fresh disposable MySQL 8 database. Compose migrations/seeding and database-aware API readiness have been verified on a disposable stack. Browser transaction journeys through the real API/database remain unverified.
+1. The initial migration creates the expected schema on a fresh disposable MySQL 8 database. Compose migrations/seeding and database-aware API readiness have been verified on a disposable stack. M1.9 verified the create/list/dashboard journey through the browser, real API, and disposable MySQL; other transaction journeys remain unverified.
 2. The API has no authentication or owner authorization. Host processes default to loopback and Compose ports are configured to publish on host loopback. Do not expose the API or database to a network.
 
 ### P1: correctness and product safety
@@ -72,9 +72,9 @@ The root `docker-compose.yml` defines MySQL, Nest, and Angular containers. `dock
 
 - Root README, adopted product decision brief, and release readiness report are present.
 - Development Dockerfiles use Node 24 Alpine, matching CI's Node 24 runtime. Backend image installs OpenSSL for Prisma; Compose reads synthetic settings from the ignored root `.env`, and backend/frontend build contexts exclude environment files. Published ports bind to loopback; production credentials must come from a secret store if deployment is reconsidered later.
-- The repository is on `main` at `5bb21f9` (`Initialize local database and seed defaults`), one commit ahead of `origin/main`, with local M1.6/M1.7 changes pending. No push was performed.
+- Before the M1.9 documentation update, `git status -sb` reported a clean `main` at `d362c5f`, matching `origin/main`. M1.9 changed project documentation only; no application code, dependencies, push, or deployment were involved.
 
 ## Verification boundary
 
-This report combines source/configuration inspection with local check results recorded in [RELEASE_READINESS.md](RELEASE_READINESS.md). Backend lint/tests/build and frontend tests/build pass locally. Compose config, disposable migrations/seeding, and API readiness startup/outage/recovery pass. Browser transaction flows through the real API/database, remote CI, staging, backup restoration, and rollback remain unverified. A configured CI workflow is not evidence that it has passed.
+This report combines source/configuration inspection with local check results recorded in [RELEASE_READINESS.md](RELEASE_READINESS.md). Backend lint/tests/build and frontend tests/build pass locally. Compose config, disposable migrations/seeding, API readiness startup/outage/recovery, and the single M1.9 browser create/list/dashboard journey through the real API/database pass. Remote CI, staging, backup restoration, rollback, and broader user journeys remain unverified. A configured CI workflow is not evidence that it has passed.
 
