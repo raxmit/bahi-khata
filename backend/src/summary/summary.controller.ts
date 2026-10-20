@@ -4,6 +4,10 @@ import {
 import { SummarizerService } from './summarizer.service.js';
 import { TransactionRepository } from '../transactions/transaction.repository.js';
 import { Period } from '../common/types.js';
+import {
+  isValidCivilDate,
+  todayInTimeZone,
+} from '../common/utils/civil-date.js';
 
 @Controller('summary')
 export class SummaryController {
@@ -28,9 +32,9 @@ export class SummaryController {
       );
     }
 
-    const date = dateStr ? new Date(dateStr) : new Date();
-    if (isNaN(date.getTime())) {
-      throw new BadRequestException('date must be a valid ISO 8601 date string');
+    const date = dateStr === undefined ? todayInTimeZone() : dateStr;
+    if (!isValidCivilDate(date)) {
+      throw new BadRequestException('date must be a valid YYYY-MM-DD calendar date');
     }
 
     const transactions = await this.transactionRepo.findAll();
@@ -43,9 +47,9 @@ export class SummaryController {
    */
   @Get('weekly')
   async getWeeklyBreakdown(@Query('month') monthStr: string) {
-    const month = monthStr ? new Date(monthStr) : new Date();
-    if (isNaN(month.getTime())) {
-      throw new BadRequestException('month must be a valid ISO 8601 date string');
+    const month = monthStr === undefined ? todayInTimeZone() : monthStr;
+    if (!isValidCivilDate(month)) {
+      throw new BadRequestException('month must be a valid YYYY-MM-DD calendar date');
     }
 
     const transactions = await this.transactionRepo.findAll();

@@ -8,6 +8,7 @@ import { PrismaService } from '../common/prisma.service.js';
 import { Transaction } from '../common/types.js';
 import { CreateTransactionDto } from '../common/dto/create-transaction.dto.js';
 import { UpdateTransactionDto } from '../common/dto/update-transaction.dto.js';
+import { parseCivilDate } from '../common/utils/civil-date.js';
 
 @Injectable()
 export class TransactionRepository {
@@ -20,7 +21,7 @@ export class TransactionRepository {
           amount: new Prisma.Decimal(data.amount),
           type: data.type,
           category: data.category,
-          date: new Date(data.date),
+          date: this.toDatabaseDate(data.date),
           note: data.note,
         },
       });
@@ -41,7 +42,9 @@ export class TransactionRepository {
           }),
           ...(changes.type !== undefined && { type: changes.type }),
           ...(changes.category !== undefined && { category: changes.category }),
-          ...(changes.date !== undefined && { date: new Date(changes.date) }),
+          ...(changes.date !== undefined && {
+            date: this.toDatabaseDate(changes.date),
+          }),
           ...(changes.note !== undefined && { note: changes.note }),
         },
       });
@@ -99,11 +102,23 @@ export class TransactionRepository {
       amount: record.amount.toFixed(2),
       type: record.type as Transaction['type'],
       category: record.category,
-      date: record.date.toISOString().split('T')[0], // YYYY-MM-DD
+      date: this.fromDatabaseDate(record.date),
       note: record.note ?? undefined,
       createdAt: record.createdAt.toISOString(),
       updatedAt: record.updatedAt.toISOString(),
     };
+  }
+
+  private toDatabaseDate(value: string): Date {
+    if (!parseCivilDate(value)) throw new Error('Invalid civil date');
+    return new Date(`${value}T00:00:00.000Z`);
+  }
+
+  private fromDatabaseDate(value: Date): string {
+    const year = String(value.getUTCFullYear()).padStart(4, '0');
+    const month = String(value.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(value.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   private handleError(e: unknown): Error {

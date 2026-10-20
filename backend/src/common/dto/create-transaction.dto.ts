@@ -2,7 +2,6 @@ import {
   IsEnum,
   IsString,
   IsNotEmpty,
-  IsDateString,
   IsOptional,
   MaxLength,
   Matches,
@@ -22,7 +21,9 @@ export class CreateTransactionDto {
   @IsNotEmpty({ message: 'Category is required' })
   category: string;
 
-  @IsDateString({}, { message: 'Date must be a valid ISO 8601 date string' })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, {
+    message: 'Date must use YYYY-MM-DD format',
+  })
   date: string;
 
   @IsOptional()

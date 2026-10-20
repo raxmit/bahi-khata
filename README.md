@@ -18,6 +18,8 @@ Bahi Khata is a personal finance tracker for recording income and expenses, orga
 
 The feature pages and main API modules exist. Compose startup applies checked-in Prisma migrations and idempotently seeds default categories before starting the API. Local MySQL is the source of truth; the initial product is single-owner, INR-only, and uses exact two-decimal amounts. The API must remain local-only until authentication and owner authorization are implemented and verified. See [adopted product decisions](docs/DECISION_BRIEF.md), the [project state report](docs/PROJECT_STATE.md), and the [implementation plan](docs/IMPLEMENTATION_PLAN.md).
 
+Transaction dates are strict `YYYY-MM-DD` civil dates stored as MySQL `DATE`. The app uses `Asia/Kolkata` for today/future validation, ISO Monday–Sunday weeks, inclusive calendar/filter bounds, and overflow-safe Insights period navigation. No date schema migration is needed; boundary tests and exact commands are recorded in [M2.1 date policy](docs/RELEASE_READINESS.md#m21-date-policy).
+
 Use synthetic financial records in development and tests. Do not expose the API or database to a network or enter real records until authentication and owner authorization are implemented and verified. Lightsail deployment is deferred until all release-readiness gates are complete and separately approved.
 
 ## Prerequisites

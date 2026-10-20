@@ -1,16 +1,17 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { DatePipe, NgClass } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { SummaryApiService } from '../../core/services/summary-api.service';
 import { AppStateService } from '../../core/app-state.service';
 import { PeriodSummary, Transaction } from '../../core/types';
 import { getRecentTransactions } from '../../core/utils/recent-transactions';
 import { formatRupees } from '../../core/utils/money';
+import { formatCivilDate, todayInAppTimeZone } from '../../core/utils/civil-date';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [DatePipe, NgClass, RouterLink],
+  imports: [NgClass, RouterLink],
   template: `
     <div class="page-header">
       <h1>Dashboard</h1>
@@ -59,7 +60,7 @@ import { formatRupees } from '../../core/utils/money';
             <li class="tx-item">
               <div class="tx-info">
                 <span class="tx-category">{{ tx.category }}</span>
-                <span class="tx-date">{{ tx.date | date:'mediumDate' }}</span>
+                <span class="tx-date">{{ formatDate(tx.date) }}</span>
               </div>
               <span [ngClass]="tx.type === 'Income' ? 'amount-income' : 'amount-expense'">
                 {{ tx.type === 'Expense' ? '-' : '+' }}{{ formatMoney(tx.amount) }}
@@ -100,9 +101,10 @@ export class DashboardComponent implements OnInit {
   recentTransactions = signal<Transaction[]>([]);
 
   formatMoney(amount: string): string { return formatRupees(amount); }
+  formatDate(date: string): string { return formatCivilDate(date); }
 
   ngOnInit(): void {
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayInAppTimeZone();
     this.summaryApi.getSummary('monthly', today).subscribe({
       next: (s) => this.summary.set(s),
       error: () => {},

@@ -141,11 +141,13 @@ These questions materially affect architecture. The coordinator should prepare a
 
 ### M2.1 Specify transaction date semantics
 
-**Decision brief prepared; awaiting user decision.** See [M2.1 date and timezone decision brief](M2.1_DATE_DECISION_BRIEF.md). Do not implement date-dependent behavior until the timezone and calendar policy are confirmed.
+**Done (2026-10-21).** Adopted the date-only contract in [M2.1 date and timezone decision brief](M2.1_DATE_DECISION_BRIEF.md): strict `YYYY-MM-DD`, `Asia/Kolkata` today/future rule, Monday–Sunday ISO weeks, inclusive calendar/filter bounds, and overflow-safe navigation. Backend/frontend boundary tests pass under UTC and `America/Los_Angeles`; MySQL `DATE` remains unchanged and no migration was added. Exact evidence is in [RELEASE_READINESS.md](RELEASE_READINESS.md#m21-date-policy).
 
 - **Task:** Define date-only storage, accepted API format, timezone used for “today,” and period boundary rules.
 - **Acceptance:** Requirements state whether a date is interpreted in user timezone or a fixed app timezone, with examples for week/month/year edges.
 - **Depends on:** M0.2, M0.5.
+
+The date-specific portions of M2.2 (DTO format, calendar validity, future-date and range validation), M2.6 (strict date bounds and inclusivity), and M2.7 (calendar summary boundaries/monthly buckets) are implemented with focused tests. Their other acceptance criteria remain open.
 
 ### M2.2 Validate transaction DTO and business rules
 

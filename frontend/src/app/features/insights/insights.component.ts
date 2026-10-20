@@ -4,6 +4,7 @@ import { SummaryApiService } from '../../core/services/summary-api.service';
 import { AppStateService } from '../../core/app-state.service';
 import { Period, PeriodSummary, WeeklyBreakdown } from '../../core/types';
 import { formatRupees } from '../../core/utils/money';
+import { navigateCivilPeriod, todayInAppTimeZone } from '../../core/utils/civil-date';
 
 @Component({
   selector: 'app-insights',
@@ -128,7 +129,7 @@ export class InsightsComponent implements OnInit {
 
   periods: Period[] = ['weekly', 'monthly', 'yearly'];
   period = signal<Period>('monthly');
-  referenceDate = signal(new Date());
+  referenceDate = signal(todayInAppTimeZone());
   summary = signal<PeriodSummary | null>(null);
   weeklyBreakdown = signal<WeeklyBreakdown[]>([]);
 
@@ -150,17 +151,14 @@ export class InsightsComponent implements OnInit {
   }
 
   navigate(direction: -1 | 1): void {
-    const d = new Date(this.referenceDate());
-    const p = this.period();
-    if (p === 'weekly') d.setDate(d.getDate() + direction * 7);
-    else if (p === 'monthly') d.setMonth(d.getMonth() + direction);
-    else d.setFullYear(d.getFullYear() + direction);
-    this.referenceDate.set(d);
+    this.referenceDate.set(
+      navigateCivilPeriod(this.referenceDate(), this.period(), direction),
+    );
     this.loadSummary();
   }
 
   private loadSummary(): void {
-    const dateStr = this.referenceDate().toISOString().split('T')[0];
+    const dateStr = this.referenceDate();
     this.summaryApi.getSummary(this.period(), dateStr).subscribe({
       next: (s) => {
         this.summary.set(s);

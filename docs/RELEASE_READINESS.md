@@ -73,6 +73,24 @@ Observed cleanup result: Compose reported all three project containers, `bahi-kh
 
 ## Local check evidence
 
+## M2.1 date policy
+
+The adopted contract is strict Gregorian `YYYY-MM-DD` civil dates, `Asia/Kolkata` for today/future checks, inclusive Monday–Sunday ISO week summaries, inclusive month/year and filter endpoints, and overflow-safe period navigation. Prisma still declares `Transaction.date DateTime @db.Date`; no schema or migration file changed.
+
+Date boundary validation used the following commands from the named package directories. On Windows, `TZ` selects the host timezone used by Node; test-runner process creation required an outside-sandbox retry after `spawn EPERM`.
+
+| Directory | Command | Result |
+|---|---|---|
+| `backend/` | `$env:TZ='UTC'; npm.cmd test` | Pass: 12 files, 45 tests |
+| `backend/` | `$env:TZ='America/Los_Angeles'; npm.cmd test` | Pass: 12 files, 45 tests |
+| `frontend/` | `$env:TZ='UTC'; npm.cmd test -- --watch=false` | Pass: 4 files, 13 tests |
+| `frontend/` | `$env:TZ='America/Los_Angeles'; npm.cmd test -- --watch=false` | Pass: 4 files, 13 tests |
+| `backend/` | `npm.cmd run lint` | Pass, exit 0, no warnings |
+| `backend/` | `npm.cmd run build` | Pass, exit 0 |
+| `frontend/` | `npm.cmd run build` | Pass, exit 0 |
+
+The brief's cases are covered: Kolkata midnight crossover and future rejection; valid/invalid leap dates and timestamp rejection; March, leap-year, Monday-start and cross-year week bounds; inclusive filter endpoints and reversed range rejection; May 2026 clamped buckets with exact Decimal totals; Jan 31 and Feb 29 navigation; and exact MySQL DATE/API round-trip mapping. `frontend/package.json` has no lint script, so a frontend lint command is not available. The previous failed in-sandbox worker launches were environmental `spawn EPERM` errors; sequential outside-sandbox test runs passed. No disposable or persistent database was modified for these unit/build checks, and no push or deployment occurred.
+
 Commands were run from the relevant package directories on the assessment date. Initial PowerShell invocations of `npm` were rejected by execution policy; retrying with `npm.cmd` produced these results. Test/build commands that failed with sandbox `spawn EPERM` were retried outside the sandbox.
 
 | Check | Result | Evidence |

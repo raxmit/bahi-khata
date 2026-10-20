@@ -3,6 +3,10 @@ import { Category, ValidationResult } from '../common/types.js';
 import { CreateTransactionDto } from '../common/dto/create-transaction.dto.js';
 import { CreateCategoryDto } from '../common/dto/create-category.dto.js';
 import { FilterCriteriaDto } from '../common/dto/filter-criteria.dto.js';
+import {
+  isValidCivilDate,
+  todayInTimeZone,
+} from '../common/utils/civil-date.js';
 
 @Injectable()
 export class ValidatorService {
@@ -11,7 +15,10 @@ export class ValidatorService {
    * Enforces: amount > 0, date not in future, all required fields present,
    * note truncated at 250 chars.
    */
-  validateTransaction(input: Partial<CreateTransactionDto>): ValidationResult {
+  validateTransaction(
+    input: Partial<CreateTransactionDto>,
+    now: Date = new Date(),
+  ): ValidationResult {
     const errors: Record<string, string> = {};
 
     // Required field checks
@@ -38,20 +45,10 @@ export class ValidatorService {
 
     if (!input.date) {
       errors['date'] = 'Date is required';
-    } else {
-      const parsed = new Date(input.date);
-      if (isNaN(parsed.getTime())) {
-        errors['date'] = 'Date must be a valid ISO 8601 date string';
-      } else {
-        // Strip time from today for fair date-only comparison
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const txDate = new Date(input.date);
-        txDate.setHours(0, 0, 0, 0);
-        if (txDate > today) {
-          errors['date'] = 'Date must not be in the future';
-        }
-      }
+    } else if (!isValidCivilDate(input.date)) {
+      errors['date'] = 'Date must be a valid YYYY-MM-DD calendar date';
+    } else if (input.date > todayInTimeZone(now)) {
+      errors['date'] = 'Date must not be in the future';
     }
 
     return { valid: Object.keys(errors).length === 0, errors };
@@ -97,21 +94,20 @@ export class ValidatorService {
   validateFilter(filter: FilterCriteriaDto): ValidationResult {
     const errors: Record<string, string> = {};
 
-    if (filter.startDate && filter.endDate) {
-      const start = new Date(filter.startDate);
-      const end = new Date(filter.endDate);
-      if (!isNaN(start.getTime()) && !isNaN(end.getTime()) && start > end) {
-        errors['dateRange'] =
-          'startDate must not be later than endDate';
-      }
+    if (filter.startDate && !isValidCivilDate(filter.startDate)) {
+      errors['startDate'] = 'startDate must be a valid YYYY-MM-DD calendar date';
     }
 
-    if (filter.startDate && isNaN(new Date(filter.startDate).getTime())) {
-      errors['startDate'] = 'startDate must be a valid ISO 8601 date string';
+    if (filter.endDate && !isValidCivilDate(filter.endDate)) {
+      errors['endDate'] = 'endDate must be a valid YYYY-MM-DD calendar date';
     }
 
-    if (filter.endDate && isNaN(new Date(filter.endDate).getTime())) {
-      errors['endDate'] = 'endDate must be a valid ISO 8601 date string';
+    if (
+      filter.startDate && filter.endDate &&
+      isValidCivilDate(filter.startDate) && isValidCivilDate(filter.endDate) &&
+      filter.startDate > filter.endDate
+    ) {
+      errors['dateRange'] = 'startDate must not be later than endDate';
     }
 
     return { valid: Object.keys(errors).length === 0, errors };

@@ -1,16 +1,21 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { DatePipe, NgClass } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { AbstractControl, ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angular/forms';
 import { TransactionApiService } from '../../core/services/transaction-api.service';
 import { AppStateService } from '../../core/app-state.service';
 import { ToastService } from '../../core/toast.service';
 import { Transaction, FilterCriteria, FilterResult } from '../../core/types';
 import { canonicalRupees, formatRupees, isValidRupeeInput } from '../../core/utils/money';
+import {
+  formatCivilDate,
+  isWithinCivilDateRange,
+  todayInAppTimeZone,
+} from '../../core/utils/civil-date';
 
 @Component({
   selector: 'app-transactions',
   standalone: true,
-  imports: [DatePipe, NgClass, ReactiveFormsModule, FormsModule],
+  imports: [NgClass, ReactiveFormsModule, FormsModule],
   template: `
     <div class="page-header">
       <h1>Transactions</h1>
@@ -117,7 +122,7 @@ import { canonicalRupees, formatRupees, isValidRupeeInput } from '../../core/uti
                   <span class="badge" [ngClass]="tx.type === 'Income' ? 'badge-income' : 'badge-expense'">
                     {{ tx.type }}
                   </span>
-                  · {{ tx.date | date:'mediumDate' }}
+                  · {{ formatDate(tx.date) }}
                 </span>
                 @if (tx.note) { <span class="tx-note">{{ tx.note }}</span> }
               </div>
@@ -159,7 +164,7 @@ export class TransactionsComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly fb = inject(FormBuilder);
 
-  today = new Date().toISOString().split('T')[0];
+  today = todayInAppTimeZone();
   submitting = signal(false);
   displayedTransactions = signal<Transaction[]>([]);
   dateRangeError = signal(false);
@@ -221,6 +226,7 @@ export class TransactionsComponent implements OnInit {
   }
 
   formatMoney(amount: string): string { return formatRupees(amount); }
+  formatDate(date: string): string { return formatCivilDate(date); }
 
   applyFilter(): void {
     const { startDate, endDate } = this.filterCriteria;
@@ -234,8 +240,7 @@ export class TransactionsComponent implements OnInit {
     const all = this.state.transactions$.value;
     const filtered = all.filter((tx) => {
       if (this.filterCriteria.type && tx.type !== this.filterCriteria.type) return false;
-      if (startDate && tx.date < startDate) return false;
-      if (endDate && tx.date > endDate) return false;
+      if (!isWithinCivilDateRange(tx.date, startDate, endDate)) return false;
       return true;
     });
     this.displayedTransactions.set(filtered);
