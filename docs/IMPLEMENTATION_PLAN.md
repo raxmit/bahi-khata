@@ -92,14 +92,16 @@ These questions materially affect architecture. The coordinator should prepare a
 - **Acceptance:** A single contract is reflected in backend return types, Angular API service types, and contract tests.
 - **Depends on:** M1.2.
 
-### M1.4 Add and review the initial Prisma migration
+### M1.4 Add and review the initial Prisma migration — Done
 
 - **Task:** Generate a checked-in migration for the chosen schema using a disposable database and review SQL before committing it.
 - **Acceptance:** `prisma migrate deploy` creates expected tables from an empty database; migration does not contain destructive/reset operations.
 - **Depends on:** M0.2, M0.4.
-- **Current evidence:** Initial SQL was generated from the empty schema and checked for create-only DDL. Disposable MySQL application and status verification are pending; do not mark this task complete yet.
+- **Evidence:** Applied `20261021000000_init` to a fresh disposable MySQL 8 container with no persistent volume. `prisma migrate status` reported the schema up to date; MySQL confirmed `transactions`, `categories`, `_prisma_migrations`, and `transactions.amount DECIMAL(15,2)`. The container was stopped and removed. Existing-data conversion and restore behavior remain out of scope for this task.
 
 ### M1.5 Make local startup initialize schema and seed defaults
+
+**Status: Done (2026-10-21).** Backend startup runs `prisma migrate deploy` followed by `prisma db seed`; Compose runs this before Nest. Category seeding uses unique-key upserts. Focused tests pass for fresh and repeated seeding. On a fresh tmpfs-only MySQL database, the first startup applied `20261021000000_init` and seeded ten defaults; the second found no pending migration and left ten defaults. The disposable service was removed after validation.
 
 - **Task:** Add an explicit local initialization command or startup dependency to apply migrations and seed idempotent default categories.
 - **Acceptance:** Repeated local startup on an empty or already-initialized database succeeds and produces exactly the intended defaults without duplicate categories.

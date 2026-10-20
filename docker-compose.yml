@@ -38,7 +38,7 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
-    command: npm run start:dev
+    command: npm run start:local
 
   frontend:
     build:

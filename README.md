@@ -16,7 +16,7 @@ Bahi Khata is a personal finance tracker for recording income and expenses, orga
 
 ## Current project status
 
-The feature pages and main API modules exist, but fresh local setup is not yet complete: an initial Prisma migration is authored but has not been applied to a disposable MySQL instance, and startup does not yet apply migrations/seed categories. Local MySQL is the source of truth; the initial product is single-owner, INR-only, and uses exact two-decimal amounts. The API must remain local-only until authentication and owner authorization are implemented and verified. See [adopted product decisions](docs/DECISION_BRIEF.md), the [project state report](docs/PROJECT_STATE.md), and the [implementation plan](docs/IMPLEMENTATION_PLAN.md).
+The feature pages and main API modules exist. Compose startup applies checked-in Prisma migrations and idempotently seeds default categories before starting the API. Local MySQL is the source of truth; the initial product is single-owner, INR-only, and uses exact two-decimal amounts. The API must remain local-only until authentication and owner authorization are implemented and verified. See [adopted product decisions](docs/DECISION_BRIEF.md), the [project state report](docs/PROJECT_STATE.md), and the [implementation plan](docs/IMPLEMENTATION_PLAN.md).
 
 Use synthetic financial records in development and tests. Do not expose the API or database to a network or enter real records until authentication and owner authorization are implemented and verified. Lightsail deployment is deferred until all release-readiness gates are complete and separately approved.
 
@@ -60,7 +60,21 @@ The intended full stack is:
 docker compose up --build
 ```
 
-The Compose file defines the services, but a fresh database currently has no applied Prisma migration. Complete M1.4–M1.9 in the implementation plan before treating this as a working end-to-end setup.
+The backend startup sequence runs `npm run db:init` before launching NestJS. To initialize a database manually from `backend/`, run `npm run db:init`; it executes `prisma migrate deploy` followed by `prisma db seed`. Both operations are repeatable: migrations apply only pending migrations, and category seeding uses the unique `(name, type)` key with `upsert`.
+
+To exercise clean and repeated initialization using only a disposable database, start the temporary MySQL service from the repository root, then run the initialization command twice from `backend/`:
+
+```powershell
+docker compose -f docker-compose.test.yml up -d --wait
+cd backend
+$env:DATABASE_URL = 'mysql://pfuser:pfpass@127.0.0.1:3307/pftracker_test'
+npm run db:init
+npm run db:init
+```
+
+Expected result: the first run applies the initial migration and creates ten default categories; the second reports no pending migrations and leaves exactly ten defaults. Stop and remove this disposable service afterward with `docker compose -f docker-compose.test.yml down` from the repository root. The test service binds to host loopback and uses a temporary filesystem with no persistent volume. Do not point these commands at any database containing user data.
+
+The normal local stack starts with `docker compose up --build`. Compose waits for MySQL health before the backend runs migrations and seeds; API/database published ports remain bound to host loopback. Complete M1.6–M1.9 before treating this as fully end-to-end verified.
 
 For configuration, see `.env.docker.example` and `backend/.env.example`. These contain development-only values. Never reuse them as production credentials.
 
