@@ -123,11 +123,12 @@ These questions materially affect architecture. The coordinator should prepare a
 - **Acceptance:** Health indicates whether the API can reach the database; orchestration can wait for the API before the frontend is considered ready.
 - **Depends on:** M1.5.
 
-### M1.8 Align the frontend smoke test with the actual shell
+### M1.8 Align the frontend smoke test with the actual shell — Done
 
 - **Task:** Replace the scaffold title assertion with a stable app-shell/router assertion and mock API initialization as needed.
 - **Acceptance:** The frontend test reflects intended behavior and passes headlessly; no brittle starter text assertion remains.
 - **Depends on:** M1.2.
+- **Evidence:** Replaced the scaffold-title assertion with app-shell/router checks and provided router plus mocked startup state in the frontend test setup. The frontend suite passed 8 tests across 3 files, including app-shell and API route coverage; the production build passed.
 
 ### M1.9 Exercise clean local startup
 
