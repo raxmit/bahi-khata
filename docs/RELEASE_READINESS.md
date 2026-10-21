@@ -96,7 +96,7 @@ Commands were run from the relevant package directories on the assessment date. 
 | Check | Result | Evidence |
 |---|---|---|
 | Backend lint | Pass | `npm.cmd run lint`, exit 0 |
-| Backend tests | Pass | `npm.cmd test`, exit 0; 73 tests passed in 14 files, including startup/readiness, M2.1 date rules, and M2.2 DTO/business/controller validation |
+| Backend tests | Pass | `npm.cmd test`, exit 0; 81 tests passed in 14 files, including startup/readiness, M2.1 date rules, M2.2 DTO/business/controller validation, and M2.3 PATCH semantics |
 | Backend build | Pass | `npm.cmd run build`, exit 0 |
 | Backend dependency audit | Pass | `npm.cmd audit --audit-level=high`; 0 vulnerabilities reported |
 | Rebuilt backend image audit | Pass | `docker run --rm --entrypoint npm bahi-khata-backend audit --audit-level=high`; exit 0, `found 0 vulnerabilities`; no-cache image build's `npm ci` also reported 0 |
@@ -147,6 +147,21 @@ The paths were `@nestjs/mau@0.2.8` (direct development dependency) -> `inquirer@
 **Commands and results.** Before the change, `docker run --rm --entrypoint npm bahi-khata-m17-backend audit --json` returned exit 1 and reproduced the package findings above. After the change, from the repository root, `docker compose build --no-cache backend` completed successfully; its `npm ci` step reported `found 0 vulnerabilities` (326 packages installed), and Prisma Client generation succeeded. `docker run --rm --entrypoint npm bahi-khata-backend audit --audit-level=high` exited 0 and printed `found 0 vulnerabilities`. Host `npm.cmd audit --audit-level=high` also exits 0. The container scan is authoritative for image contents because it uses npm 11.19.1. The image build still prints a deprecated `tsconfck` notice and npm install-script notices for Prisma; these are not audit vulnerabilities and did not prevent Prisma generation.
 
 M2.2 enforces positive bounded INR decimal strings, supported transaction types, nonblank text categories, strict valid/nonfuture civil dates, and optional text notes up to 250 characters consistently in DTO and business validation. Overlong notes are rejected rather than silently truncated. Focused tests from `backend/`: `npm.cmd test -- src/common/dto/transaction-validation.dto.spec.ts src/validator/validator.service.spec.ts src/transactions/transactions.controller.spec.ts` passed (3 files, 46 tests). One intermediate full-suite run failed because the new test expected a nested error body; after aligning the assertion with the controller's field-map response, the final full suite passed. The final full backend lint, tests, build, image build, and audit results are in the local check table above.
+
+## M2.3 transaction PATCH validation
+
+PATCH now rejects an empty patch with HTTP 400. For nonempty patches, the controller fetches the current transaction, overlays only supplied fields, validates the complete resulting record using the M2.2 business rules, then passes only supplied fields to the repository's sparse update. Thus omitted fields are preserved by persistence and also participate in merged-record validation. Tests use mocked repositories and synthetic values; no database was used.
+
+From `backend/`, exact checks and results:
+
+| Command | Result |
+|---|---|
+| `npm.cmd test -- src/transactions/transactions.controller.spec.ts` | Pass: 1 file, 14 tests; includes one-field valid update, invalid supplied amount/type/category/date/note, empty patch HTTP 400, merged-state validation, and unchanged omitted values |
+| `npm.cmd test` | Pass: 14 files, 81 tests |
+| `npm.cmd run lint` | Pass, exit 0 |
+| `npm.cmd run build` | Pass, exit 0 |
+
+The first focused test attempt inside the sandbox failed before test execution with Vite/Windows `spawn EPERM`; the same command was rerun outside the sandbox and passed. No database command or database operation was run for M2.3. No push or deployment occurred.
 
 ## Safe next readiness work
 

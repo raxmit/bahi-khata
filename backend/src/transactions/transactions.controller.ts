@@ -1,7 +1,7 @@
 import {
   Controller, Get, Post, Patch, Delete,
   Param, Body, Query, HttpCode, HttpStatus,
-  BadRequestException,
+  BadRequestException, NotFoundException,
 } from '@nestjs/common';
 import { TransactionRepository } from './transaction.repository.js';
 import { FilterEngineService } from '../filter/filter-engine.service.js';
@@ -52,21 +52,33 @@ export class TransactionsController {
   /** PATCH /transactions/:id — update an existing transaction */
   @Patch(':id')
   async update(@Param('id') id: string, @Body() dto: UpdateTransactionDto) {
-    // Only validate fields that are present
-    const partial: Record<string, unknown> = {};
-    if (dto.amount !== undefined) partial['amount'] = dto.amount;
-    if (dto.type !== undefined) partial['type'] = dto.type;
-    if (dto.category !== undefined) partial['category'] = dto.category;
-    if (dto.date !== undefined) partial['date'] = dto.date;
-
-    if (Object.keys(partial).length > 0) {
-      const validation = this.validator.validateTransaction(partial as any);
-      if (!validation.valid) {
-        throw new BadRequestException(validation.errors);
-      }
+    const supplied: UpdateTransactionDto = {};
+    for (const field of ['amount', 'type', 'category', 'date', 'note'] as const) {
+      if (dto[field] !== undefined) supplied[field] = dto[field] as never;
     }
 
-    return this.repo.update(id, dto);
+    if (Object.keys(supplied).length === 0) {
+      throw new BadRequestException({ patch: 'At least one field must be provided' });
+    }
+
+    const existing = await this.repo.findById(id);
+    if (!existing) {
+      throw new NotFoundException('Transaction not found');
+    }
+
+    const merged: CreateTransactionDto = {
+      amount: (supplied.amount !== undefined ? supplied.amount : existing.amount) as string,
+      type: (supplied.type !== undefined ? supplied.type : existing.type) as CreateTransactionDto['type'],
+      category: (supplied.category !== undefined ? supplied.category : existing.category) as string,
+      date: (supplied.date !== undefined ? supplied.date : existing.date) as string,
+      note: supplied.note !== undefined ? supplied.note : existing.note,
+    };
+    const validation = this.validator.validateTransaction(merged);
+    if (!validation.valid) {
+      throw new BadRequestException(validation.errors);
+    }
+
+    return this.repo.update(id, supplied);
   }
 
   /** DELETE /transactions/:id — permanently remove a transaction */

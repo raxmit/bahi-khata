@@ -159,7 +159,8 @@ The date-specific portions of M2.6 (strict date bounds and inclusivity) and M2.7
 
 ### M2.3 Correct partial transaction updates
 
-- **Task:** Validate only provided PATCH fields, while validating merged state where cross-field rules require it. Define whether empty PATCH is rejected.
+- **Status:** Done (2026-10-21). PATCH rejects an empty body with HTTP 400, validates supplied values against the existing transaction to enforce the complete resulting record, and sends only supplied fields to persistence. Focused tests cover valid one-field changes, invalid inputs, merged-state validation, and unchanged omitted values; exact check results are in `docs/RELEASE_READINESS.md`.
+- **Task:** Validate only provided PATCH fields, while validating merged state where cross-field rules require it. Empty PATCH requests are rejected.
 - **Acceptance:** Valid one-field updates succeed; invalid supplied fields and invalid resulting records fail; omitted fields remain unchanged.
 - **Depends on:** M2.2, M1.3.
 
