@@ -59,3 +59,40 @@ describe('ValidatorService civil date validation', () => {
       .toHaveProperty('endDate');
   });
 });
+
+describe('ValidatorService transaction field validation', () => {
+  const validator = new ValidatorService();
+  const validTransaction = {
+    amount: '1.00',
+    type: 'Expense' as const,
+    category: 'Food',
+    date: '2026-01-01',
+  };
+
+  it.each(['0.00', '-1.00', '1', '1.234', '1e2', '10000000000000.00'])(
+    'rejects non-positive, malformed, or out-of-range amount %s',
+    (amount) => {
+      expect(validator.validateTransaction({ ...validTransaction, amount }).errors)
+        .toHaveProperty('amount');
+    },
+  );
+
+  it.each(['', '   ', 42])('rejects blank or non-text category %s', (category) => {
+    expect(validator.validateTransaction({ ...validTransaction, category } as never).errors)
+      .toHaveProperty('category');
+  });
+
+  it.each(['Saving', 'expense', 1])('rejects unsupported transaction type %s', (type) => {
+    expect(validator.validateTransaction({ ...validTransaction, type } as never).errors)
+      .toHaveProperty('type');
+  });
+
+  it('accepts notes up to 250 characters and rejects invalid note values', () => {
+    expect(validator.validateTransaction({ ...validTransaction, note: 'n'.repeat(250) }).valid)
+      .toBe(true);
+    expect(validator.validateTransaction({ ...validTransaction, note: 'n'.repeat(251) }).errors)
+      .toHaveProperty('note', 'Note must not exceed 250 characters');
+    expect(validator.validateTransaction({ ...validTransaction, note: 123 } as never).errors)
+      .toHaveProperty('note', 'Note must be text');
+  });
+});

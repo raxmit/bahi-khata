@@ -46,12 +46,6 @@ export class TransactionsController {
       throw new BadRequestException(validation.errors);
     }
 
-    // Truncate note if needed
-    if (dto.note) {
-      const { value, truncated } = this.validator.truncateNote(dto.note);
-      if (truncated) dto.note = value;
-    }
-
     return this.repo.create(dto);
   }
 
@@ -70,11 +64,6 @@ export class TransactionsController {
       if (!validation.valid) {
         throw new BadRequestException(validation.errors);
       }
-    }
-
-    if (dto.note) {
-      const { value, truncated } = this.validator.truncateNote(dto.note);
-      if (truncated) dto.note = value;
     }
 
     return this.repo.update(id, dto);

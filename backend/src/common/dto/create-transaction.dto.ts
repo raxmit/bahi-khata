@@ -19,6 +19,7 @@ export class CreateTransactionDto {
 
   @IsString()
   @IsNotEmpty({ message: 'Category is required' })
+  @Matches(/\S/, { message: 'Category must not be blank' })
   category: string;
 
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
@@ -27,6 +28,7 @@ export class CreateTransactionDto {
   date: string;
 
   @IsOptional()
+  @IsString({ message: 'Note must be text' })
   @MaxLength(250, { message: 'Note must not exceed 250 characters' })
   note?: string;
 }

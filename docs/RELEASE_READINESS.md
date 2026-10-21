@@ -96,17 +96,18 @@ Commands were run from the relevant package directories on the assessment date. 
 | Check | Result | Evidence |
 |---|---|---|
 | Backend lint | Pass | `npm.cmd run lint`, exit 0 |
-| Backend tests | Pass, limited coverage | `npm.cmd test`, exit 0; 21 tests passed in 7 files, including fresh/repeated seeding, readiness, and safe startup failure cases |
+| Backend tests | Pass | `npm.cmd test`, exit 0; 73 tests passed in 14 files, including startup/readiness, M2.1 date rules, and M2.2 DTO/business/controller validation |
 | Backend build | Pass | `npm.cmd run build`, exit 0 |
 | Backend dependency audit | Pass | `npm.cmd audit --audit-level=high`; 0 vulnerabilities reported |
-| Frontend tests | Pass | `npm.cmd test -- --watch=false`; 3 files and 8 tests passed, including exact INR input/formatting cases |
+| Rebuilt backend image audit | Pass | `docker run --rm --entrypoint npm bahi-khata-backend audit --audit-level=high`; exit 0, `found 0 vulnerabilities`; no-cache image build's `npm ci` also reported 0 |
+| Frontend tests | Pass | `npm.cmd test -- --watch=false`; 4 files and 13 tests passed, including civil-date and exact INR input/formatting cases |
 | Frontend production build | Pass | `npm.cmd run build`, exit 0 |
 | Angular serve proxy configuration | Pass | `npm.cmd exec ng -- config projects.frontend.architect.serve.options.proxyConfig` returned `proxy.conf.json` |
 | Compose configuration | Pass | `docker compose config`, exit 0; confirmed frontend, API, and database published ports bind to `127.0.0.1`; no warning reported. |
 | M1.6 Compose configuration | Pass | Copied `.env.example` to ignored `.env`; `docker compose config` and `docker compose -f docker-compose.test.yml config` both exited 0. Parsed both outputs: main published ports `3000`, `4200`, `3306`, and test port `3307` all bind to `127.0.0.1`. |
 | Local credential/build-context review | Pass | `.env.example` contains only synthetic development values; `.env` is ignored by Git. Backend/frontend `.dockerignore` exclude `.env`, `.env.*`, and `*.env`. Test database credentials are explicitly synthetic. No production credentials are included in Compose or Docker build contexts. |
 | Docker runtime versions | Pass | `backend/Dockerfile.dev` and `frontend/Dockerfile.dev` use `node:24-alpine`, matching `.github/workflows/ci.yml` Node 24. |
-| Dependency advisory notice during Node 24 image build | Follow-up required | Backend image `npm ci` reported 5 vulnerabilities (2 low, 1 moderate, 2 high). M1.7 made no dependency changes; these findings need a separate dependency audit/triage before release. |
+| M1.7 backend image dependency advisories | Resolved; detailed triage below | The Node 24 Alpine image's `npm ci` reported 5 package vulnerabilities, including 2 high-severity package records. They came from an unused development-only Mau CLI dependency and were removed; the no-cache rebuild now reports zero vulnerabilities. |
 | M1.7 disposable Compose readiness | Pass | `docker compose -p bahi-khata-m17 up --build --renew-anon-volumes -d --wait` started MySQL, API, and frontend using a project-scoped disposable MySQL volume; MySQL and API reached healthy and frontend started. `GET http://127.0.0.1:3000/health/ready` returned HTTP 200 `{"status":"ready"}`. |
 | M1.7 database outage and recovery | Pass | `docker compose -p bahi-khata-m17 stop mysql`; endpoint returned HTTP 503 `{"status":"not_ready"}` with no database details; `docker inspect --format "{{.State.Health.Status}} {{.State.Health.FailingStreak}}" pftracker-backend` reported `unhealthy 5`. After `docker compose -p bahi-khata-m17 start mysql`, endpoint returned HTTP 200 `{"status":"ready"}` and `docker compose -p bahi-khata-m17 up -d --wait` reported MySQL/API healthy and frontend started. `docker compose -p bahi-khata-m17 down -v` removed the isolated containers and database volume. |
 | M1.9 clean local startup and browser journey | Pass, synthetic disposable data | Exact commands, browser/API/MySQL evidence, failures, and cleanup are recorded in [M1.9 end-to-end local verification](#m1-9-end-to-end-local-verification). |
@@ -125,6 +126,27 @@ Commands were run from the relevant package directories on the assessment date. 
 | Database backup/restore | Not run | No backup identity, restore rehearsal, or recovery evidence is available |
 
 Passing local checks do not establish CI success or production readiness. The backend suite has limited coverage. M1.9 validates one synthetic create/list/dashboard path only. The production Nginx example was inspected but not executed because no Nginx staging host is available.
+
+## M1.7 backend image advisory triage and M2.2 validation
+
+**Scanner and scope.** `npm ci` in `backend/Dockerfile.dev` invokes npm's built-in registry audit. The image is the Node 24 Alpine backend development image (`bahi-khata-m17-backend:latest`); its npm version was 11.19.1. The five npm package-level findings were 2 low, 1 moderate, and 2 high. npm groups multiple individual advisories under one vulnerable package, so the two high package records corresponded to six high-severity GHSA advisories:
+
+| Affected package/version | Advisory ID and issue | Advisory fixed version |
+|---|---|---|
+| `tmp@0.0.33` | [GHSA-ph9p-34f9-6g65](https://github.com/advisories/GHSA-ph9p-34f9-6g65), path traversal | `tmp` 0.2.6 |
+| `undici@6.20.1` | [GHSA-f269-vfmq-vjvj](https://github.com/advisories/GHSA-f269-vfmq-vjvj), WebSocket parser crash | `undici` 6.24.0 |
+| `undici@6.20.1` | [GHSA-vrm6-8vpv-qv8q](https://github.com/advisories/GHSA-vrm6-8vpv-qv8q), WebSocket decompression memory exhaustion | `undici` 6.24.0 |
+| `undici@6.20.1` | [GHSA-v9p9-hfj2-hcw8](https://github.com/advisories/GHSA-v9p9-hfj2-hcw8), invalid WebSocket compression parameter can crash process | `undici` 6.24.0 |
+| `undici@6.20.1` | [GHSA-vxpw-j846-p89q](https://github.com/advisories/GHSA-vxpw-j846-p89q), WebSocket fragment-count denial of service | `undici` 6.27.0 |
+| `undici@6.20.1` | [GHSA-rfgv-xxqx-mfg5](https://github.com/advisories/GHSA-rfgv-xxqx-mfg5), unrequested WebSocket subprotocol can crash process | `undici` 6.28.1 |
+
+The paths were `@nestjs/mau@0.2.8` (direct development dependency) -> `inquirer@8.2.6` -> `external-editor@3.1.0` -> `tmp@0.0.33`, and `@nestjs/mau` -> `undici@6.20.1`. `@nestjs/mau` was not imported by app source or used by a project script. The `tmp` issue requires attacker-controlled path parameters to flow to its file/directory creation calls; app code does not use `tmp`. The Undici findings concern its WebSocket client; the app does not use Undici WebSockets. These dependencies were development-only, but they were present in the development image and CI install, so the npm audit gate correctly treated them as a release risk. The API remains local-only pending authentication.
+
+**Fix applied.** From `backend/`, ran `npm.cmd uninstall @nestjs/mau --save-dev` (exit 0; removed 51 packages, audited 324, and reported 0 vulnerabilities). Removed the unused Mau development dependency rather than accepting npm's suggested `@nestjs/mau@0.0.6` major-version change or adding overrides for otherwise-unused transitive libraries. This drops the full `tmp`/`undici` chain without changing application runtime behavior. `backend/package.json` and its lockfile are updated; no new dependencies were added. That host command printed nonfatal peer/engine warnings under Node 24.12.0; the Docker image uses Node 24 and its clean `npm ci` completed successfully.
+
+**Commands and results.** Before the change, `docker run --rm --entrypoint npm bahi-khata-m17-backend audit --json` returned exit 1 and reproduced the package findings above. After the change, from the repository root, `docker compose build --no-cache backend` completed successfully; its `npm ci` step reported `found 0 vulnerabilities` (326 packages installed), and Prisma Client generation succeeded. `docker run --rm --entrypoint npm bahi-khata-backend audit --audit-level=high` exited 0 and printed `found 0 vulnerabilities`. Host `npm.cmd audit --audit-level=high` also exits 0. The container scan is authoritative for image contents because it uses npm 11.19.1. The image build still prints a deprecated `tsconfck` notice and npm install-script notices for Prisma; these are not audit vulnerabilities and did not prevent Prisma generation.
+
+M2.2 enforces positive bounded INR decimal strings, supported transaction types, nonblank text categories, strict valid/nonfuture civil dates, and optional text notes up to 250 characters consistently in DTO and business validation. Overlong notes are rejected rather than silently truncated. Focused tests from `backend/`: `npm.cmd test -- src/common/dto/transaction-validation.dto.spec.ts src/validator/validator.service.spec.ts src/transactions/transactions.controller.spec.ts` passed (3 files, 46 tests). One intermediate full-suite run failed because the new test expected a nested error body; after aligning the assertion with the controller's field-map response, the final full suite passed. The final full backend lint, tests, build, image build, and audit results are in the local check table above.
 
 ## Safe next readiness work
 

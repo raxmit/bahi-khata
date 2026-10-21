@@ -12,8 +12,8 @@ import {
 export class ValidatorService {
   /**
    * Validates a transaction input against business rules.
-   * Enforces: amount > 0, date not in future, all required fields present,
-   * note truncated at 250 chars.
+   * Enforces exact positive INR amounts, required fields, civil-date rules,
+   * and an optional text note no longer than 250 characters.
    */
   validateTransaction(
     input: Partial<CreateTransactionDto>,
@@ -39,7 +39,11 @@ export class ValidatorService {
       errors['type'] = 'Type must be Income or Expense';
     }
 
-    if (!input.category || input.category.trim() === '') {
+    if (input.category === undefined || input.category === null || input.category === '') {
+      errors['category'] = 'Category is required';
+    } else if (typeof input.category !== 'string') {
+      errors['category'] = 'Category must be text';
+    } else if (input.category.trim() === '') {
       errors['category'] = 'Category is required';
     }
 
@@ -49,6 +53,14 @@ export class ValidatorService {
       errors['date'] = 'Date must be a valid YYYY-MM-DD calendar date';
     } else if (input.date > todayInTimeZone(now)) {
       errors['date'] = 'Date must not be in the future';
+    }
+
+    if (input.note !== undefined) {
+      if (typeof input.note !== 'string') {
+        errors['note'] = 'Note must be text';
+      } else if (input.note.length > 250) {
+        errors['note'] = 'Note must not exceed 250 characters';
+      }
     }
 
     return { valid: Object.keys(errors).length === 0, errors };
@@ -113,15 +125,4 @@ export class ValidatorService {
     return { valid: Object.keys(errors).length === 0, errors };
   }
 
-  /**
-   * Truncates a note to 250 characters if it exceeds the limit.
-   * Returns the (possibly truncated) value and a flag indicating truncation.
-   */
-  truncateNote(note: string): { value: string; truncated: boolean } {
-    const MAX = 250;
-    if (note.length > MAX) {
-      return { value: note.slice(0, MAX), truncated: true };
-    }
-    return { value: note, truncated: false };
-  }
 }

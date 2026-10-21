@@ -147,9 +147,11 @@ These questions materially affect architecture. The coordinator should prepare a
 - **Acceptance:** Requirements state whether a date is interpreted in user timezone or a fixed app timezone, with examples for week/month/year edges.
 - **Depends on:** M0.2, M0.5.
 
-The date-specific portions of M2.2 (DTO format, calendar validity, future-date and range validation), M2.6 (strict date bounds and inclusivity), and M2.7 (calendar summary boundaries/monthly buckets) are implemented with focused tests. Their other acceptance criteria remain open.
+The date-specific portions of M2.6 (strict date bounds and inclusivity) and M2.7 (calendar summary boundaries/monthly buckets) are implemented with focused tests; other acceptance criteria remain open.
 
 ### M2.2 Validate transaction DTO and business rules
+
+**Done (2026-10-21).** Transaction DTO and business validation now agree on positive two-decimal INR strings, `Income`/`Expense`, nonblank category strings, valid nonfuture `YYYY-MM-DD`, and optional string notes capped at 250 characters. Invalid notes are rejected rather than truncated. Focused DTO, validator, and controller tests passed; full checks are recorded in [RELEASE_READINESS.md](RELEASE_READINESS.md#m17-backend-image-advisory-triage-and-m22-validation).
 
 - **Task:** Validate finite positive amounts, enum type, nonblank category, strict date-only input, nonfuture date under chosen timezone, and note length consistently.
 - **Acceptance:** Each invalid field maps to an actionable 400 response; tests cover boundary and malformed input cases.
