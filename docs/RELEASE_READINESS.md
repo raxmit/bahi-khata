@@ -96,11 +96,11 @@ Commands were run from the relevant package directories on the assessment date. 
 | Check | Result | Evidence |
 |---|---|---|
 | Backend lint | Pass | `npm.cmd run lint`, exit 0 |
-| Backend tests | Pass | `npm.cmd test`, exit 0; 81 tests passed in 14 files, including startup/readiness, M2.1 date rules, M2.2 DTO/business/controller validation, and M2.3 PATCH semantics |
+| Backend tests | Pass | `npm.cmd test`, exit 0; 95 tests passed in 16 files, including startup/readiness, M2.1 date rules, M2.2 validation, M2.3 PATCH semantics, and M2.4 category integrity |
 | Backend build | Pass | `npm.cmd run build`, exit 0 |
 | Backend dependency audit | Pass | `npm.cmd audit --audit-level=high`; 0 vulnerabilities reported |
 | Rebuilt backend image audit | Pass | `docker run --rm --entrypoint npm bahi-khata-backend audit --audit-level=high`; exit 0, `found 0 vulnerabilities`; no-cache image build's `npm ci` also reported 0 |
-| Frontend tests | Pass | `npm.cmd test -- --watch=false`; 4 files and 13 tests passed, including civil-date and exact INR input/formatting cases |
+| Frontend tests | Pass | `npm.cmd test -- --watch=false`; 4 files and 14 tests passed, including civil-date, exact INR input/formatting, and M2.4 category API routing cases |
 | Frontend production build | Pass | `npm.cmd run build`, exit 0 |
 | Angular serve proxy configuration | Pass | `npm.cmd exec ng -- config projects.frontend.architect.serve.options.proxyConfig` returned `proxy.conf.json` |
 | Compose configuration | Pass | `docker compose config`, exit 0; confirmed frontend, API, and database published ports bind to `127.0.0.1`; no warning reported. |
@@ -147,6 +147,57 @@ The paths were `@nestjs/mau@0.2.8` (direct development dependency) -> `inquirer@
 **Commands and results.** Before the change, `docker run --rm --entrypoint npm bahi-khata-m17-backend audit --json` returned exit 1 and reproduced the package findings above. After the change, from the repository root, `docker compose build --no-cache backend` completed successfully; its `npm ci` step reported `found 0 vulnerabilities` (326 packages installed), and Prisma Client generation succeeded. `docker run --rm --entrypoint npm bahi-khata-backend audit --audit-level=high` exited 0 and printed `found 0 vulnerabilities`. Host `npm.cmd audit --audit-level=high` also exits 0. The container scan is authoritative for image contents because it uses npm 11.19.1. The image build still prints a deprecated `tsconfck` notice and npm install-script notices for Prisma; these are not audit vulnerabilities and did not prevent Prisma generation.
 
 M2.2 enforces positive bounded INR decimal strings, supported transaction types, nonblank text categories, strict valid/nonfuture civil dates, and optional text notes up to 250 characters consistently in DTO and business validation. Overlong notes are rejected rather than silently truncated. Focused tests from `backend/`: `npm.cmd test -- src/common/dto/transaction-validation.dto.spec.ts src/validator/validator.service.spec.ts src/transactions/transactions.controller.spec.ts` passed (3 files, 46 tests). One intermediate full-suite run failed because the new test expected a nested error body; after aligning the assertion with the controller's field-map response, the final full suite passed. The final full backend lint, tests, build, image build, and audit results are in the local check table above.
+
+## M2.4 stable category identity and safeguards
+
+### Status (kept separate)
+
+| Status area | Result |
+|---|---|
+| Behavior approval | Approved by user on 2026-10-22: category IDs/FK, reject missing and mismatched IDs, rename custom categories in place, block deletion while referenced |
+| Implementation | Code, tests, schema, and migration prepared locally; API and frontend now use category IDs. No migration was applied. |
+| Review | Reviewed the Prisma schema and migration SQL statically; generated from-empty Prisma SQL confirms required `categoryId`, its index, and `ON DELETE RESTRICT`. Migration rollback implications are documented below. No independent reviewer or live database review has occurred. |
+| Verification | Unit tests, lint, builds, Prisma validation, and schema diff passed as recorded below. Database migration, API/database integration, and restore rehearsal remain unverified. |
+| Database-operation approval | No approval to inspect or modify the running Compose database was given. No commands were run against it. A separate approval is required before any migration or database operation against that stack. |
+
+### Behavior and migration
+
+Transaction create/update now accept `categoryId`, require an existing category matching the resulting transaction type, and retain `category` as a compatibility snapshot/display value. Read queries resolve the live category name through the relation. Filters and summary breakdowns use category IDs. Category rename preserves the category ID and atomically updates compatibility snapshots; defaults cannot be renamed. Deleting a referenced custom category returns HTTP 409, and the restrictive foreign key protects against races; default deletion remains HTTP 403. The category screen has a rename action and reports the referenced-category deletion error. Transaction reassignment through the UI is not yet available; until a later edit/reassignment flow exists, referenced custom categories can be reassigned through the API and then deleted.
+
+The new migration is `backend/prisma/migrations/20261022000000_category_identity/migration.sql`. It adds a nullable column, backfills only exact `(category name, transaction type)` matches, then makes the ID required and creates an indexed `RESTRICT` foreign key. If any historical transaction has no exact same-type category, the required-column step fails. MySQL DDL may leave the earlier additive column/backfill in place on such a failure. Before applying, run this preflight against a disposable database or, only after separate approval, the intended database:
+
+```sql
+SELECT COUNT(*) AS unmatched_transactions
+FROM transactions AS t
+LEFT JOIN categories AS c
+  ON BINARY c.name = BINARY t.category AND c.type = t.type
+WHERE c.id IS NULL;
+```
+
+Expected result: `unmatched_transactions = 0`. If nonzero, do not apply the migration; explicitly map each unmatched label to a same-type category and verify the mapping first. Stop the old API while migrating so name-only writes cannot race with the backfill. In this environment no database operation was performed, so the preflight result is **unknown**.
+
+On a separate disposable MySQL database only, the documented migration validation sequence is: load the synthetic database URL into `DATABASE_URL`, run `npm.cmd run db:init` from `backend/`, and verify both `20261021000000_init` and `20261022000000_category_identity` are applied, the unmatched count is zero, every transaction has a valid same-type `categoryId`, and the FK rejects category deletion while referenced. Then rehearse a backup/restore of that disposable database and verify its pre-migration transaction/category counts and labels. Expected startup on an empty database: both migrations complete, ten defaults seed once, and the category ID constraint is present. Neither this sequence nor the SQL preflight was executed for M2.4.
+
+Rollback preserves the original `transactions.category` snapshot and does not delete transactions. If a migration fails, keep the app stopped and restore the verified pre-migration backup before retrying; the migration contains DDL that can partially apply. Do not simply mark a partially applied Prisma migration rolled back and rerun it, because its initial `ADD COLUMN` would conflict. After successful migration, an application rollback to the old API can read the maintained category name snapshots; schema rollback should only drop the FK/index/ID after confirming the name snapshot is current and restoring a backup if classification history is uncertain. Category renames update snapshots in the same DB transaction specifically to preserve that rollback path.
+
+### Exact local checks and results
+
+Commands were run from the indicated package directory. Tests use mock repositories; no database connection was made.
+
+| Directory | Command | Result |
+|---|---|---|
+| `backend/` | `npm.cmd test -- src/transactions/transaction.repository.spec.ts src/transactions/transactions.controller.spec.ts src/categories/category.repository.spec.ts src/categories/categories.controller.spec.ts src/common/dto/transaction-validation.dto.spec.ts src/validator/validator.service.spec.ts src/filter/filter-engine.service.spec.ts src/summary/summarizer.service.spec.ts` | Pass: 8 files, 74 tests; missing/wrong-type IDs, type-change mismatch, type+matching-ID update, rename/duplicate/default behavior, reference-blocked deletion, filter and summary ID behavior |
+| `backend/` | `npm.cmd test` | Pass: 16 files, 95 tests |
+| `backend/` | `npm.cmd run lint` | Pass, exit 0 |
+| `backend/` | `npm.cmd run build` | Pass, exit 0 |
+| `frontend/` | `npm.cmd test -- --watch=false` | Pass: 4 files, 14 tests; includes category PATCH routing through `/api` |
+| `frontend/` | `npm.cmd run build` | Pass, exit 0 |
+| `backend/` | `npm.cmd exec prisma -- validate` | Pass; valid schema, no database connection |
+| `backend/` | `npm.cmd exec prisma -- migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script` | Pass; generated expected required category ID FK with `ON DELETE RESTRICT`. This is schema SQL generation, not a migration application. |
+| `backend/` | `npm.cmd exec prisma -- format` and `npm.cmd exec prisma -- generate` | Pass after retrying client generation outside the sandbox due to `spawn EPERM`; no DB connection |
+| Repository root | `git diff --check` | Pass |
+
+The first sandboxed Vitest run failed before test execution with Windows `spawn EPERM`; retrying outside the sandbox passed. One later suite run exposed a mock fixture that did not use Prisma's known-error class; the fixture was corrected, and the final suite passed. Static migration review found the migration and Prisma schema use the same FK name, indexed ID field, requiredness, and restrict behavior. No database migration, data preflight, API/database smoke test, rollback restore rehearsal, push, or deployment was run. M2.4 database-backed acceptance remains unverified.
 
 ## M2.3 transaction PATCH validation
 

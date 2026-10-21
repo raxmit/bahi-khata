@@ -8,7 +8,7 @@ export class FilterCriteriaDto {
 
   @IsOptional()
   @IsString({ each: true, message: 'Each category must be a string' })
-  categories?: string[];
+  categories?: string[]; // Category IDs
 
   @IsOptional()
   @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'startDate must use YYYY-MM-DD format' })

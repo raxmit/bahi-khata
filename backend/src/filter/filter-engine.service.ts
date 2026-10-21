@@ -17,9 +17,8 @@ export class FilterEngineService {
 
       // Category filter (multi-select OR within the criterion)
       if (
-        criteria.categories &&
-        criteria.categories.length > 0 &&
-        !criteria.categories.includes(t.category)
+        criteria.categories?.length &&
+        (!t.categoryId || !criteria.categories.includes(t.categoryId))
       ) {
         return false;
       }

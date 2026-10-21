@@ -1,12 +1,13 @@
 import {
-  Controller, Get, Post, Delete,
+  Controller, Get, Post, Patch, Delete,
   Param, Body, HttpCode, HttpStatus,
-  BadRequestException,
+  BadRequestException, ConflictException, NotFoundException,
 } from '@nestjs/common';
 import { CategoryRepository } from './category.repository.js';
 import { ValidatorService } from '../validator/validator.service.js';
 import { CreateCategoryDto } from '../common/dto/create-category.dto.js';
 import { Category } from '../common/types.js';
+import { UpdateCategoryDto } from '../common/dto/update-category.dto.js';
 
 @Controller('categories')
 export class CategoriesController {
@@ -32,6 +33,24 @@ export class CategoriesController {
       throw new BadRequestException(validation.errors);
     }
     return this.repo.create(dto);
+  }
+
+  /** PATCH /categories/:id — rename a custom category while preserving its identity. */
+  @Patch(':id')
+  async rename(@Param('id') id: string, @Body() dto: UpdateCategoryDto) {
+    const current = await this.repo.findById(id);
+    if (!current) throw new NotFoundException('Category not found');
+    const validation = this.validator.validateCategory(
+      { name: dto.name, type: current.type },
+      (await this.repo.findAll()).filter((category) => category.id !== id),
+    );
+    if (!validation.valid) {
+      if (validation.errors['name'] === 'Category name must be unique per type') {
+        throw new ConflictException(validation.errors);
+      }
+      throw new BadRequestException(validation.errors);
+    }
+    return this.repo.rename(id, dto.name.trim());
   }
 
   /** DELETE /categories/:id — remove a custom category (default categories blocked) */

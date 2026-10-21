@@ -53,7 +53,7 @@ export class TransactionsController {
   @Patch(':id')
   async update(@Param('id') id: string, @Body() dto: UpdateTransactionDto) {
     const supplied: UpdateTransactionDto = {};
-    for (const field of ['amount', 'type', 'category', 'date', 'note'] as const) {
+    for (const field of ['amount', 'type', 'categoryId', 'date', 'note'] as const) {
       if (dto[field] !== undefined) supplied[field] = dto[field] as never;
     }
 
@@ -69,7 +69,7 @@ export class TransactionsController {
     const merged: CreateTransactionDto = {
       amount: (supplied.amount !== undefined ? supplied.amount : existing.amount) as string,
       type: (supplied.type !== undefined ? supplied.type : existing.type) as CreateTransactionDto['type'],
-      category: (supplied.category !== undefined ? supplied.category : existing.category) as string,
+      categoryId: (supplied.categoryId !== undefined ? supplied.categoryId : existing.categoryId) as string,
       date: (supplied.date !== undefined ? supplied.date : existing.date) as string,
       note: supplied.note !== undefined ? supplied.note : existing.note,
     };

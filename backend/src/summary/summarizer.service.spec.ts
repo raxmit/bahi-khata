@@ -14,6 +14,7 @@ describe('SummarizerService date and exact INR semantics', () => {
     amount,
     type,
     category,
+    categoryId: category.toLowerCase(),
     date,
     createdAt: `${date}T12:00:00.000Z`,
     updatedAt: `${date}T12:00:00.000Z`,
@@ -39,6 +40,9 @@ describe('SummarizerService date and exact INR semantics', () => {
       netBalance: '0.30',
       isEmpty: false,
     });
+    expect(result.categoryBreakdown).toEqual(expect.arrayContaining([
+      expect.objectContaining({ categoryId: 'salary', category: 'Salary', type: 'Income', total: '0.30' }),
+    ]));
   });
 
   it('includes leap day in the selected yearly period', () => {

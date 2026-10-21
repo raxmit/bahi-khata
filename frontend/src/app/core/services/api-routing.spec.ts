@@ -37,6 +37,14 @@ describe('API service routing', () => {
     request.flush([]);
   });
 
+  it('renames a category through the same-origin /api prefix', () => {
+    TestBed.inject(CategoryApiService).update('category-id', { name: 'Books' }).subscribe();
+    const request = http.expectOne('/api/categories/category-id');
+    expect(request.request.method).toBe('PATCH');
+    expect(request.request.body).toEqual({ name: 'Books' });
+    request.flush({});
+  });
+
   it('sends summary requests and their parameters through /api', () => {
     TestBed.inject(SummaryApiService).getSummary('monthly', '2026-10-01').subscribe();
     const request = http.expectOne(

@@ -39,9 +39,34 @@ export class CategoryRepository {
     if (record.isDefault) {
       throw new ForbiddenException('Default categories cannot be deleted');
     }
+    const references = await this.prisma.transaction.count({ where: { categoryId: id } });
+    if (references > 0) {
+      throw new ConflictException('Category is used by transactions; reassign them before deleting');
+    }
     try {
       await this.prisma.category.delete({ where: { id } });
     } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2003') {
+        throw new ConflictException('Category is used by transactions; reassign them before deleting');
+      }
+      throw this.handleError(e);
+    }
+  }
+
+  async rename(id: string, name: string): Promise<Category> {
+    const current = await this.prisma.category.findUnique({ where: { id } });
+    if (!current) throw new NotFoundException(`Category ${id} not found`);
+    if (current.isDefault) throw new ForbiddenException('Default categories cannot be renamed');
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const record = await tx.category.update({ where: { id }, data: { name } });
+        await tx.transaction.updateMany({ where: { categoryId: id }, data: { category: name } });
+        return this.toCategory(record);
+      });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        throw new ConflictException('Category name must be unique per type');
+      }
       throw this.handleError(e);
     }
   }
@@ -69,6 +94,11 @@ export class CategoryRepository {
     } catch (e) {
       throw this.handleError(e);
     }
+  }
+
+  async findById(id: string): Promise<Category | null> {
+    const record = await this.prisma.category.findUnique({ where: { id } });
+    return record ? this.toCategory(record) : null;
   }
 
   // ─── Helpers ───────────────────────────────────────────────────────────────

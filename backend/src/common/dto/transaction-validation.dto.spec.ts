@@ -7,7 +7,7 @@ describe('CreateTransactionDto validation contract', () => {
     {
       amount: '1.00',
       type: 'Expense',
-      category: 'Food',
+      categoryId: 'category-food',
       date: '2026-03-01',
       ...changes,
     },
@@ -18,12 +18,19 @@ describe('CreateTransactionDto validation contract', () => {
     expect(await validate(makeDto({ note: 'n'.repeat(250) }))).toHaveLength(0);
   });
 
+  it('requires a category ID instead of accepting a category label', async () => {
+    const errors = await validate(makeDto({ categoryId: 'food-id', category: 'Food' }));
+    expect(errors).toEqual([]);
+    const labelOnly = await validate(makeDto({ categoryId: undefined, category: 'Food' }));
+    expect(labelOnly.some((error) => error.property === 'categoryId')).toBe(true);
+  });
+
   it.each([
     ['amount', '0.00'],
     ['amount', 1],
     ['type', 'Transfer'],
-    ['category', '   '],
-    ['category', 42],
+    ['categoryId', '   '],
+    ['categoryId', 42],
     ['date', '2026-03-01T00:00:00Z'],
     ['note', 'n'.repeat(251)],
     ['note', 42],

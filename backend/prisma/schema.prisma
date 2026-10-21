@@ -8,23 +8,28 @@ datasource db {
 }
 
 model Transaction {
-  id        String          @id @default(uuid())
-  amount    Decimal @db.Decimal(15, 2)
-  type      TransactionType
-  category  String
-  date      DateTime        @db.Date
-  note      String?         @db.VarChar(250)
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
+  id          String          @id @default(uuid())
+  amount      Decimal         @db.Decimal(15, 2)
+  type        TransactionType
+  // Kept as a compatibility snapshot while old records are mapped and API clients transition.
+  category    String
+  categoryId  String
+  categoryRef Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  date        DateTime        @db.Date
+  note        String?         @db.VarChar(250)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 
+  @@index([categoryId])
   @@map("transactions")
 }
 
 model Category {
-  id        String          @id @default(uuid())
-  name      String
-  type      TransactionType
-  isDefault Boolean         @default(false)
+  id           String          @id @default(uuid())
+  name         String
+  type         TransactionType
+  isDefault    Boolean         @default(false)
+  transactions Transaction[]
 
   @@unique([name, type])
   @@map("categories")

@@ -60,6 +60,8 @@ import { Category } from '../../core/types';
             @if (cat.isDefault) {
               <span class="default-badge">default</span>
             } @else {
+              <button class="btn btn-ghost btn-sm" (click)="renameCategory(cat)"
+                [attr.aria-label]="'Rename ' + cat.name">Rename</button>
               <button class="btn btn-ghost btn-sm" (click)="deleteCategory(cat)"
                 [attr.aria-label]="'Delete ' + cat.name">🗑</button>
             }
@@ -78,6 +80,8 @@ import { Category } from '../../core/types';
             @if (cat.isDefault) {
               <span class="default-badge">default</span>
             } @else {
+              <button class="btn btn-ghost btn-sm" (click)="renameCategory(cat)"
+                [attr.aria-label]="'Rename ' + cat.name">Rename</button>
               <button class="btn btn-ghost btn-sm" (click)="deleteCategory(cat)"
                 [attr.aria-label]="'Delete ' + cat.name">🗑</button>
             }
@@ -158,7 +162,7 @@ export class CategoriesComponent implements OnInit {
   }
 
   deleteCategory(cat: Category): void {
-    if (!confirm(`Delete category "${cat.name}"? Existing transactions will keep this category label.`)) return;
+    if (!confirm(`Delete category "${cat.name}"? It can only be deleted after all transactions are reassigned.`)) return;
     this.api.delete(cat.id).subscribe({
       next: () => {
         this.toast.show('Category deleted', 'success');
@@ -167,7 +171,24 @@ export class CategoriesComponent implements OnInit {
       error: (err) => {
         if (err.status === 403) {
           this.toast.show('Default categories cannot be deleted', 'error');
+        } else if (err.status === 409) {
+          this.toast.show('Reassign this category’s transactions before deleting it', 'error');
         }
+      },
+    });
+  }
+
+  renameCategory(cat: Category): void {
+    const name = prompt(`Rename category "${cat.name}"`, cat.name);
+    if (name === null || name.trim() === '' || name.trim() === cat.name) return;
+    this.api.update(cat.id, { name: name.trim() }).subscribe({
+      next: () => {
+        this.toast.show('Category renamed', 'success');
+        this.state.refreshCategories();
+        this.state.refreshTransactions();
+      },
+      error: (err) => {
+        this.toast.show(err.status === 409 ? 'Category name must be unique per type' : 'Category could not be renamed', 'error');
       },
     });
   }

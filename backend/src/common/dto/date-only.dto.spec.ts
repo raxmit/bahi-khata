@@ -5,7 +5,7 @@ import { FilterCriteriaDto } from './filter-criteria.dto.js';
 describe('date-only DTO format', () => {
   it('accepts YYYY-MM-DD and rejects timestamps for transaction dates', async () => {
     const valid = Object.assign(new CreateTransactionDto(), {
-      amount: '1.00', type: 'Expense', category: 'Food', date: '2026-03-01',
+      amount: '1.00', type: 'Expense', categoryId: 'food-id', date: '2026-03-01',
     });
     const timestamp = Object.assign(new CreateTransactionDto(), {
       ...valid, date: '2026-03-01T00:00:00Z',

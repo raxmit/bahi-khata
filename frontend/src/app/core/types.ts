@@ -6,6 +6,7 @@ export interface Transaction {
   amount: string;
   type: TransactionType;
   category: string;
+  categoryId: string;
   date: string;        // YYYY-MM-DD
   note?: string;
   createdAt: string;
@@ -20,6 +21,7 @@ export interface Category {
 }
 
 export interface CategoryTotal {
+  categoryId: string;
   category: string;
   type: TransactionType;
   total: string;
@@ -46,7 +48,7 @@ export interface PeriodSummary {
 
 export interface FilterCriteria {
   type?: TransactionType;
-  categories?: string[];
+  categories?: string[]; // Category IDs
   startDate?: string;
   endDate?: string;
 }
@@ -59,7 +61,7 @@ export interface FilterResult {
 export interface CreateTransactionDto {
   amount: string;
   type: TransactionType;
-  category: string;
+  categoryId: string;
   date: string;
   note?: string;
 }
@@ -67,7 +69,7 @@ export interface CreateTransactionDto {
 export interface UpdateTransactionDto {
   amount?: string;
   type?: TransactionType;
-  category?: string;
+  categoryId?: string;
   date?: string;
   note?: string;
 }
@@ -75,4 +77,8 @@ export interface UpdateTransactionDto {
 export interface CreateCategoryDto {
   name: string;
   type: TransactionType;
+}
+
+export interface UpdateCategoryDto {
+  name: string;
 }

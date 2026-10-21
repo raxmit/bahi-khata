@@ -4,7 +4,7 @@ describe('ValidatorService INR amount validation', () => {
   const validator = new ValidatorService();
   const base = {
     type: 'Expense' as const,
-    category: 'Food',
+    categoryId: 'category-food',
     date: '2026-01-01',
   };
 
@@ -27,7 +27,7 @@ describe('ValidatorService INR amount validation', () => {
 describe('ValidatorService civil date validation', () => {
   const validator = new ValidatorService();
   const now = new Date('2026-10-20T18:45:00.000Z');
-  const validTransaction = { amount: '1.00', type: 'Expense' as const, category: 'Food' };
+  const validTransaction = { amount: '1.00', type: 'Expense' as const, categoryId: 'category-food' };
 
   it('uses Asia/Kolkata today across the UTC day boundary', () => {
     expect(validator.validateTransaction({ ...validTransaction, date: '2026-10-21' }, now).valid)
@@ -65,7 +65,7 @@ describe('ValidatorService transaction field validation', () => {
   const validTransaction = {
     amount: '1.00',
     type: 'Expense' as const,
-    category: 'Food',
+    categoryId: 'category-food',
     date: '2026-01-01',
   };
 
@@ -77,9 +77,9 @@ describe('ValidatorService transaction field validation', () => {
     },
   );
 
-  it.each(['', '   ', 42])('rejects blank or non-text category %s', (category) => {
-    expect(validator.validateTransaction({ ...validTransaction, category } as never).errors)
-      .toHaveProperty('category');
+  it.each(['', '   ', 42])('rejects blank or non-text category ID %s', (categoryId) => {
+    expect(validator.validateTransaction({ ...validTransaction, categoryId } as never).errors)
+      .toHaveProperty('categoryId');
   });
 
   it.each(['Saving', 'expense', 1])('rejects unsupported transaction type %s', (type) => {

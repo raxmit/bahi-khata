@@ -39,12 +39,10 @@ export class ValidatorService {
       errors['type'] = 'Type must be Income or Expense';
     }
 
-    if (input.category === undefined || input.category === null || input.category === '') {
-      errors['category'] = 'Category is required';
-    } else if (typeof input.category !== 'string') {
-      errors['category'] = 'Category must be text';
-    } else if (input.category.trim() === '') {
-      errors['category'] = 'Category is required';
+    if (input.categoryId === undefined || input.categoryId === null || input.categoryId === '') {
+      errors['categoryId'] = 'Category ID is required';
+    } else if (typeof input.categoryId !== 'string' || input.categoryId.trim() === '') {
+      errors['categoryId'] = 'Category ID is invalid';
     }
 
     if (!input.date) {

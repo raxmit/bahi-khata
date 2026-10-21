@@ -9,7 +9,8 @@ export interface Transaction {
   id: string;           // UUID v4
   amount: string;       // positive INR amount with exactly two decimal places
   type: TransactionType; // 'Income' | 'Expense', required
-  category: string;     // category name, required
+  category: string;     // current category name (legacy snapshot if unmapped)
+  categoryId: string;
   date: string;         // ISO 8601 date string (YYYY-MM-DD), required
   note?: string;        // optional, max 250 chars
   createdAt: string;    // ISO 8601 datetime, set on creation
@@ -26,6 +27,7 @@ export interface Category {
 // ─── Summary / Insights ───────────────────────────────────────────────────────
 
 export interface CategoryTotal {
+  categoryId: string;
   category: string;
   type: TransactionType;
   total: string;
@@ -54,7 +56,7 @@ export interface PeriodSummary {
 
 export interface FilterCriteria {
   type?: TransactionType;
-  categories?: string[];
+  categories?: string[]; // Category IDs
   startDate?: string;   // ISO 8601 date string
   endDate?: string;     // ISO 8601 date string
 }

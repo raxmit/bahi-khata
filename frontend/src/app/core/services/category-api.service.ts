@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Category, CreateCategoryDto } from '../types';
+import { Category, CreateCategoryDto, UpdateCategoryDto } from '../types';
 
 const API = '/api/categories';
 
@@ -15,6 +15,10 @@ export class CategoryApiService {
 
   create(data: CreateCategoryDto): Observable<Category> {
     return this.http.post<Category>(API, data);
+  }
+
+  update(id: string, data: UpdateCategoryDto): Observable<Category> {
+    return this.http.patch<Category>(`${API}/${id}`, data);
   }
 
   delete(id: string): Observable<void> {

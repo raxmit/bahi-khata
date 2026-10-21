@@ -16,12 +16,12 @@ describe('TransactionsController create validation', () => {
   beforeEach(() => create.mockReset());
 
   it.each([
-    [{ amount: '0.00', type: 'Expense', category: 'Food', date: '2026-01-01' }, 'amount'],
-    [{ amount: '1.00', type: 'Transfer', category: 'Food', date: '2026-01-01' }, 'type'],
-    [{ amount: '1.00', type: 'Expense', category: '   ', date: '2026-01-01' }, 'category'],
-    [{ amount: '1.00', type: 'Expense', category: 'Food', date: '2025-02-29' }, 'date'],
-    [{ amount: '1.00', type: 'Expense', category: 'Food', date: '2099-01-01' }, 'date'],
-    [{ amount: '1.00', type: 'Expense', category: 'Food', date: '2026-01-01', note: 'n'.repeat(251) }, 'note'],
+    [{ amount: '0.00', type: 'Expense', categoryId: 'food-id', date: '2026-01-01' }, 'amount'],
+    [{ amount: '1.00', type: 'Transfer', categoryId: 'food-id', date: '2026-01-01' }, 'type'],
+    [{ amount: '1.00', type: 'Expense', categoryId: '', date: '2026-01-01' }, 'categoryId'],
+    [{ amount: '1.00', type: 'Expense', categoryId: 'food-id', date: '2025-02-29' }, 'date'],
+    [{ amount: '1.00', type: 'Expense', categoryId: 'food-id', date: '2099-01-01' }, 'date'],
+    [{ amount: '1.00', type: 'Expense', categoryId: 'food-id', date: '2026-01-01', note: 'n'.repeat(251) }, 'note'],
   ] as const)('returns an actionable 400 for invalid %s input', async (input, field) => {
     const rejection = controller.create(input as never);
     await expect(rejection).rejects.toBeInstanceOf(BadRequestException);
@@ -41,6 +41,7 @@ describe('TransactionsController PATCH validation', () => {
     amount: '25.00',
     type: 'Expense',
     category: 'Food',
+    categoryId: 'food-id',
     date: '2026-10-20',
     note: 'unchanged note',
     createdAt: '2026-10-20T10:00:00.000Z',
@@ -70,7 +71,7 @@ describe('TransactionsController PATCH validation', () => {
   it.each([
     [{ amount: '0.00' }, 'amount'],
     [{ type: 'Transfer' }, 'type'],
-    [{ category: '   ' }, 'category'],
+    [{ categoryId: '   ' }, 'categoryId'],
     [{ date: '2099-01-01' }, 'date'],
     [{ note: 'n'.repeat(251) }, 'note'],
   ] as const)('rejects invalid supplied value %s with HTTP 400', async (patch, field) => {
@@ -96,4 +97,5 @@ describe('TransactionsController PATCH validation', () => {
     });
     expect(update).not.toHaveBeenCalled();
   });
+
 });

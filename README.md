@@ -75,6 +75,8 @@ docker compose up --build --renew-anon-volumes
 
 The backend startup sequence runs `npm run db:init` before launching NestJS. To initialize a database manually from `backend/`, run `npm run db:init`; it executes `prisma migrate deploy` followed by `prisma db seed`. Both operations are repeatable: migrations apply only pending migrations, and category seeding uses the unique `(name, type)` key with `upsert`.
 
+**M2.4 migration hold:** The current working tree adds a category-ID backfill migration. Compose startup applies pending migrations automatically. Do not restart an existing Compose stack until its transaction labels have been preflighted, a backup/recovery point is available, and you have separately approved database operations against that stack. See [M2.4 migration and rollback notes](docs/RELEASE_READINESS.md#m24-stable-category-identity-and-safeguards).
+
 To exercise clean and repeated initialization using only a disposable database, start the temporary MySQL service from the repository root, then run the initialization command twice from `backend/`:
 
 ```powershell

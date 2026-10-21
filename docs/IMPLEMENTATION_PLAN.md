@@ -166,6 +166,7 @@ The date-specific portions of M2.6 (strict date bounds and inclusivity) and M2.7
 
 ### M2.4 Enforce category integrity for transactions
 
+- **Status:** Implemented locally (2026-10-22); user approved behavior/scope. Code, tests, and migration are prepared and statically reviewed. The migration has not been applied; data preflight and database verification remain pending. Track implementation, review, verification, and database-operation approval separately in `docs/RELEASE_READINESS.md`.
 - **Task:** Decide and implement category identity rules (stable category ID/foreign key recommended) and verify category type matches transaction type.
 - **Acceptance:** A transaction cannot reference a missing category or a category of the wrong type; category rename/delete behavior is deterministic.
 - **Depends on:** M0.2, M0.3, M1.4.

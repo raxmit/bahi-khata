@@ -19,8 +19,8 @@ export class CreateTransactionDto {
 
   @IsString()
   @IsNotEmpty({ message: 'Category is required' })
-  @Matches(/\S/, { message: 'Category must not be blank' })
-  category: string;
+  @Matches(/\S/, { message: 'Category ID is required' })
+  categoryId: string;
 
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
     message: 'Date must use YYYY-MM-DD format',

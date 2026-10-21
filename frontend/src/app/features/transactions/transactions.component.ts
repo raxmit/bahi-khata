@@ -45,10 +45,10 @@ import {
           </div>
           <div class="form-group">
             <label for="category">Category *</label>
-            <select id="category" formControlName="category" [class.invalid]="isInvalid('category')">
+            <select id="category" formControlName="categoryId" [class.invalid]="isInvalid('categoryId')">
               <option value="">Select category</option>
               @for (cat of filteredCategories(); track cat.id) {
-                <option [value]="cat.name">{{ cat.name }}</option>
+              <option [value]="cat.id">{{ cat.name }}</option>
               }
             </select>
           </div>
@@ -178,7 +178,7 @@ export class TransactionsComponent implements OnInit {
   form = this.fb.group({
     amount: ['', [Validators.required, (control: AbstractControl) => isValidRupeeInput(control.value) ? null : { rupeeAmount: true }]],
     type: ['', Validators.required],
-    category: ['', Validators.required],
+    categoryId: ['', Validators.required],
     date: [this.today, Validators.required],
     note: [''],
   });
@@ -194,7 +194,7 @@ export class TransactionsComponent implements OnInit {
     const type = this.form.get('type')?.value;
     const cats = this.state.categories$.value;
     this.filteredCategories.set(type ? cats.filter((c) => c.type === type) : cats);
-    this.form.get('category')?.setValue('');
+    this.form.get('categoryId')?.setValue('');
   }
 
   isInvalid(field: string): boolean {
@@ -211,7 +211,7 @@ export class TransactionsComponent implements OnInit {
     this.api.create({
       amount: canonicalRupees(val.amount!),
       type: val.type as 'Income' | 'Expense',
-      category: val.category!,
+      categoryId: val.categoryId!,
       date: val.date!,
       note: val.note || undefined,
     }).subscribe({

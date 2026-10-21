@@ -23,7 +23,12 @@ export class SummarizerService {
 
     let totalIncome = new Prisma.Decimal(0);
     let totalExpenses = new Prisma.Decimal(0);
-    const categoryMap = new Map<string, { type: Transaction['type']; total: Prisma.Decimal }>();
+    const categoryMap = new Map<string, {
+      categoryId: string;
+      category: string;
+      type: Transaction['type'];
+      total: Prisma.Decimal;
+    }>();
 
     for (const transaction of inWindow) {
       if (transaction.type === 'Income') {
@@ -31,18 +36,24 @@ export class SummarizerService {
       } else {
         totalExpenses = totalExpenses.plus(transaction.amount);
       }
-      const key = `${transaction.category}::${transaction.type}`;
+      const key = `${transaction.categoryId}::${transaction.type}`;
       const existing = categoryMap.get(key);
       if (existing) {
         existing.total = existing.total.plus(transaction.amount);
       } else {
-        categoryMap.set(key, { type: transaction.type, total: new Prisma.Decimal(transaction.amount) });
+        categoryMap.set(key, {
+          categoryId: transaction.categoryId,
+          category: transaction.category,
+          type: transaction.type,
+          total: new Prisma.Decimal(transaction.amount),
+        });
       }
     }
 
-    const categoryBreakdown: CategoryTotal[] = Array.from(categoryMap.entries())
-      .map(([key, value]) => ({
-        category: key.split('::')[0],
+    const categoryBreakdown: CategoryTotal[] = Array.from(categoryMap.values())
+      .map((value) => ({
+        categoryId: value.categoryId,
+        category: value.category,
         type: value.type,
         total: value.total.toFixed(2),
       }))

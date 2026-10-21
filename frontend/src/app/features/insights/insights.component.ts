@@ -59,7 +59,7 @@ import { navigateCivilPeriod, todayInAppTimeZone } from '../../core/utils/civil-
         <section class="card">
           <h2>By Category</h2>
           <ul class="breakdown-list" aria-label="Category breakdown">
-            @for (cat of summary()!.categoryBreakdown; track cat.category) {
+            @for (cat of summary()!.categoryBreakdown; track cat.categoryId) {
               <li class="breakdown-item">
                 <span class="breakdown-name">
                   <span class="badge" [ngClass]="cat.type === 'Income' ? 'badge-income' : 'badge-expense'">
