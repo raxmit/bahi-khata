@@ -99,3 +99,44 @@ describe('TransactionsController PATCH validation', () => {
   });
 
 });
+
+describe('TransactionsController filter contract', () => {
+  const transaction: Transaction = {
+    id: 'synthetic-id', amount: '1.00', type: 'Expense', category: 'Food', categoryId: 'food-id',
+    date: '2026-03-01', createdAt: '2026-03-01T12:00:00.000Z', updatedAt: '2026-03-01T12:00:00.000Z',
+  };
+  const findAll = vi.fn();
+  const applyFilter = vi.fn();
+  let controller: TransactionsController;
+
+  beforeEach(() => {
+    findAll.mockReset().mockResolvedValue([transaction]);
+    applyFilter.mockReset().mockImplementation((items) => ({
+      matches: items,
+      hasResults: items.length > 0,
+    }));
+    controller = new TransactionsController(
+      { findAll } as unknown as TransactionRepository,
+      { applyFilter } as unknown as FilterEngineService,
+      new ValidatorService(),
+    );
+  });
+
+  it('returns the same result shape with and without criteria', async () => {
+    const unfiltered = await controller.findAll({});
+    const filtered = await controller.findAll({ type: 'Expense' });
+
+    expect(unfiltered).toEqual({ matches: [transaction], hasResults: true });
+    expect(filtered).toEqual({ matches: [transaction], hasResults: true });
+    expect(applyFilter).toHaveBeenNthCalledWith(1, [transaction], {});
+    expect(applyFilter).toHaveBeenNthCalledWith(2, [transaction], { type: 'Expense' });
+  });
+
+  it('rejects reversed date ranges before querying transactions', async () => {
+    await expect(controller.findAll({ startDate: '2026-03-31', endDate: '2026-03-01' })).rejects.toMatchObject({
+      status: 400,
+    });
+    expect(findAll).not.toHaveBeenCalled();
+    expect(applyFilter).not.toHaveBeenCalled();
+  });
+});

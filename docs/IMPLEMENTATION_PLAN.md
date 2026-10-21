@@ -147,7 +147,7 @@ These questions materially affect architecture. The coordinator should prepare a
 - **Acceptance:** Requirements state whether a date is interpreted in user timezone or a fixed app timezone, with examples for week/month/year edges.
 - **Depends on:** M0.2, M0.5.
 
-The date-specific portions of M2.6 (strict date bounds and inclusivity) and M2.7 (calendar summary boundaries/monthly buckets) are implemented with focused tests; other acceptance criteria remain open.
+M2.6 is complete with focused coverage for date bounds and inclusive filtering. The date-specific portions of M2.7 (calendar summary boundaries/monthly buckets) are implemented with focused tests; its other acceptance criteria remain open.
 
 ### M2.2 Validate transaction DTO and business rules
 
@@ -173,12 +173,14 @@ The date-specific portions of M2.6 (strict date bounds and inclusivity) and M2.7
 
 ### M2.5 Choose exact amount storage
 
+- **Status:** Done (2026-10-22). D-03 is adopted and implemented: MySQL `DECIMAL(15,2)`, Prisma Decimal, canonical decimal-string API values, exact decimal aggregation, and string-based frontend formatting. The initial Decimal migration passed on disposable MySQL. Any historical Float conversion remains conditional on a separately approved target and verified backup; no persistent database was inspected or changed.
 - **Task:** Based on D-03, choose decimal/minor-unit representation; define migration and conversion for existing records (if any).
 - **Acceptance:** Storage, DTOs, calculations, and formatting preserve supported currency precision; migration is reviewed against a backup and tested with synthetic values.
 - **Depends on:** M0.4, M1.4.
 
 ### M2.6 Stabilize filter API and validation
 
+- **Status:** Done (2026-10-22). `GET /transactions` always returns `{ matches, hasResults }`; the frontend unwraps `matches`. Single and repeated category query parameters are normalized, blank category values are treated as no category filter, and malformed values/date ranges are rejected. Focused tests cover category normalization, AND across criteria, OR across categories, inclusive date endpoints, reversed ranges, and stable empty results; see `docs/RELEASE_READINESS.md`.
 - **Task:** Normalize empty/query-array handling, category selection, date validation, response shape, and inclusive endpoints.
 - **Acceptance:** API tests prove AND across criteria, OR within categories, inclusive dates, invalid reversed ranges, and consistent no-result behavior.
 - **Depends on:** M1.3, M2.1.

@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import {
   Transaction, CreateTransactionDto, UpdateTransactionDto,
   FilterCriteria, FilterResult,
@@ -20,7 +20,7 @@ export class TransactionApiService {
     if (filter?.categories?.length) {
       filter.categories.forEach((c) => (params = params.append('categories', c)));
     }
-    return this.http.get<Transaction[]>(API, { params });
+    return this.http.get<FilterResult>(API, { params }).pipe(map(({ matches }) => matches));
   }
 
   create(data: CreateTransactionDto): Observable<Transaction> {

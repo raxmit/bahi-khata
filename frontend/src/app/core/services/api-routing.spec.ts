@@ -24,10 +24,12 @@ describe('API service routing', () => {
   afterEach(() => http.verify());
 
   it('sends transaction requests through the same-origin /api prefix', () => {
-    TestBed.inject(TransactionApiService).getAll().subscribe();
+    let transactions: unknown;
+    TestBed.inject(TransactionApiService).getAll().subscribe((result) => transactions = result);
     const request = http.expectOne('/api/transactions');
     expect(request.request.method).toBe('GET');
-    request.flush([]);
+    request.flush({ matches: [], hasResults: false });
+    expect(transactions).toEqual([]);
   });
 
   it('sends category requests through the same-origin /api prefix', () => {

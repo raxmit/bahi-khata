@@ -29,11 +29,6 @@ export class TransactionsController {
 
     const all = await this.repo.findAll();
 
-    const hasCriteria =
-      query.type ?? query.categories ?? query.startDate ?? query.endDate;
-
-    if (!hasCriteria) return all;
-
     return this.filterEngine.applyFilter(all, query);
   }
 

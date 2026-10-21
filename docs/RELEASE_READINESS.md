@@ -215,6 +215,25 @@ From `backend/`, exact checks and results:
 
 The first focused test attempt inside the sandbox failed before test execution with Vite/Windows `spawn EPERM`; the same command was rerun outside the sandbox and passed. No database command or database operation was run for M2.3. No push or deployment occurred.
 
+## M2.5 exact amount representation and M2.6 filter contract
+
+M2.5 is complete for the fresh schema: the adopted D-03 decision is reflected in Prisma `Decimal(15,2)`, the initial MySQL `DECIMAL(15,2)` migration, decimal-string API types, Prisma Decimal aggregation, and frontend string formatting. The initial schema was verified on disposable MySQL. This does not establish how any uninspected historical Float database would be converted; no persistent database was queried or changed.
+
+M2.6 is implemented with a stable `GET /transactions` response of `{ matches, hasResults }` for both filtered and unfiltered calls. The Angular service preserves its existing `Transaction[]` application API by unwrapping `matches`. A single `categories` query value is normalized to a one-element list; repeated values remain a list; blank values are ignored; non-string values, invalid date bounds, and reversed ranges are rejected. Category selection is OR-based, other criteria combine with AND, and date endpoints are inclusive.
+
+Exact checks from the repository root (commands run in the noted package directory):
+
+| Directory | Command | Result |
+|---|---|---|
+| `backend/` | `npm.cmd test` | Pass: 16 files, 101 tests. |
+| `backend/` | `npm.cmd test -- src/common/dto/date-only.dto.spec.ts src/filter/filter-engine.service.spec.ts src/transactions/transactions.controller.spec.ts` | Pass: 3 files, 24 tests. The first sandbox attempt failed before execution with Windows `spawn EPERM`; the same command passed when rerun outside the sandbox. |
+| `backend/` | `npm.cmd run lint` | Pass, exit 0. |
+| `backend/` | `npm.cmd run build` | Pass, exit 0. |
+| `frontend/` | `npm.cmd test -- --watch=false` | Pass: 4 files, 14 tests. |
+| `frontend/` | `npm.cmd run build` | Pass, exit 0. |
+
+No database, Compose, push, or deployment command was run for M2.5/M2.6. The app Compose stack remains outside this verification and requires its own approval before startup or database operations.
+
 ## Safe next readiness work
 
 1. Implement and verify authentication plus single-owner authorization before any network exposure; replace or safely disable placeholder instrumentation credentials.

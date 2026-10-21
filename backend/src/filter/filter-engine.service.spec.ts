@@ -36,4 +36,25 @@ describe('FilterEngineService civil date ranges', () => {
 
     expect(result.matches.map(({ id }) => id)).toEqual(['2026-03-01']);
   });
+
+  it('uses AND across criteria and OR across selected category IDs', () => {
+    const incomeFood = { ...transaction('2026-03-05'), id: 'income-food', type: 'Income' as const };
+    const expenseBooks = { ...transaction('2026-03-10'), id: 'expense-books', categoryId: 'books-id' };
+    const expenseOutsideRange = { ...transaction('2026-04-01'), id: 'expense-food' };
+    const result = service.applyFilter([incomeFood, expenseBooks, expenseOutsideRange], {
+      type: 'Expense',
+      categories: ['food-id', 'books-id'],
+      startDate: '2026-03-01',
+      endDate: '2026-03-31',
+    });
+
+    expect(result).toEqual({ matches: [expenseBooks], hasResults: true });
+  });
+
+  it('returns a stable empty result when no transaction matches', () => {
+    expect(service.applyFilter([transaction('2026-03-01')], { type: 'Income' })).toEqual({
+      matches: [],
+      hasResults: false,
+    });
+  });
 });

@@ -37,7 +37,7 @@ The root `docker-compose.yml` defines MySQL, Nest, and Angular containers. `dock
 | App shell and navigation | Lazy routes for four pages; responsive side/bottom navigation; toast component; `/api` dev proxy | M1.9 verified dashboard and same-origin browser requests through Compose to the real API/database; accessibility and viewport checks remain open |
 | Transaction create/list/delete | API endpoints, repository, validator, create form, list, delete confirmation | M1.9 verified one synthetic create/list journey; M2.3 validates sparse PATCH requests; M2.4 migration and FK were verified on disposable MySQL, but API-to-database category type enforcement is not yet exercised end to end; no edit UI |
 | Categories | API create/list/rename/delete; default categories protected; idempotent seed runs at local startup; sorted lists | M2.4 preserves category identity across rename and blocks deletion while referenced; migration/FK verified on disposable MySQL; user-facing transaction reassignment UI is not available |
-| Filters | Backend supports type, category ID array, and inclusive date bounds | UI only filters local state by type/date; no category filter; API response changes shape to `{matches, hasResults}` when filters are passed |
+| Filters | Backend supports type, category ID array, and inclusive date bounds; `GET /transactions` consistently returns `{matches, hasResults}` with or without filters | UI only filters local state by type/date; no category filter |
 | Insights | Weekly/monthly/yearly summary and monthly week breakdown on API and UI | M2.1 boundaries have focused tests in UTC and non-UTC host settings; broader UI/API journey coverage remains |
 | Persistence | MySQL + Prisma; initial migration verified on disposable MySQL; amounts use Decimal(15,2) and exact decimal-string API values; Compose applies migration and seeds defaults; M1.9 verified one browser-created row in disposable MySQL | No authentication/owner authorization; broader journeys and existing-data migration/recovery remain unverified |
 | API readiness | `GET /health/ready` performs `SELECT 1`; Compose health-checks API and starts frontend only after readiness | Endpoint reports database reachability, not full application or frontend readiness |
@@ -56,7 +56,7 @@ The root `docker-compose.yml` defines MySQL, Nest, and Angular containers. `dock
 ### P1: correctness and product safety
 
 4. M2.3 now validates merged PATCH state. M2.4 uses stable category IDs; its migration and exact-match synthetic backfill passed on disposable MySQL. No production or user database was inspected, so any other historical category labels remain unknown.
-5. The backend filter endpoint returns a bare `Transaction[]` without criteria, but returns `FilterResult` when criteria exist. This is an unstable response contract for API clients.
+5. The backend filter response is stable: filtered and unfiltered calls both return `FilterResult`; the Angular API service unwraps `matches` for current app-state consumers. Single and repeated category query values normalize consistently; invalid values and date ranges receive validation errors.
 6. M2.4 introduces a required category ID foreign key and keeps the label snapshot for rollback compatibility. The disposable preflight returned zero for its synthetic fixture. Any other database's unmatched historical labels remain unknown; restore rehearsal and API-to-database verification remain pending.
 7. Amounts now use Prisma `Decimal(15,2)` and canonical decimal strings at the API boundary. The initial migration needs a reviewed compatibility plan for any existing Float data; do not convert persistent data without inventory, backup, and recovery review.
 8. Single-owner scope is adopted, but authentication and owner authorization are not implemented. Local-only exposure is a temporary safety boundary, not production security.
@@ -64,7 +64,7 @@ The root `docker-compose.yml` defines MySQL, Nest, and Angular containers. `dock
 
 ## Tests found
 
-- Backend unit: 95 tests across 16 files, including exact amount/date regressions, DTO and controller validation, category ID integrity, repository mapping, filters/summaries, fresh/repeated seeding, readiness, and safe startup failure behavior.
+- Backend unit: 101 tests across 16 files, including exact amount/date regressions, DTO and controller validation, category ID integrity, repository mapping, filters/summaries, fresh/repeated seeding, readiness, and safe startup failure behavior.
 - Backend e2e: one root-route test that imports the full application module.
 - Frontend unit: 14 tests across 4 files, including civil-date boundary behavior, exact INR validation/formatting, app shell, and API route coverage.
 - Focused backend validator, DTO, controller, repository, filter, and summarizer tests now exist; component-level and broader HTTP contract coverage remains limited.

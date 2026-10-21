@@ -1,4 +1,5 @@
-import { IsOptional, IsEnum, IsString, Matches } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsOptional, IsEnum, IsArray, IsString, Matches, ArrayNotEmpty } from 'class-validator';
 import type { TransactionType } from '../types.js';
 
 export class FilterCriteriaDto {
@@ -7,6 +8,20 @@ export class FilterCriteriaDto {
   type?: TransactionType;
 
   @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      const category = value.trim();
+      return category ? [category] : undefined;
+    }
+    if (Array.isArray(value)) {
+      const categories = value.map((item) => typeof item === 'string' ? item.trim() : item)
+        .filter((item) => item !== '');
+      return categories.length ? categories : undefined;
+    }
+    return value;
+  })
+  @IsArray({ message: 'Categories must be supplied as repeated category IDs' })
+  @ArrayNotEmpty({ message: 'At least one category ID must be provided' })
   @IsString({ each: true, message: 'Each category must be a string' })
   categories?: string[]; // Category IDs
 
