@@ -1,7 +1,7 @@
 ﻿# Bahi Khata: Project State
 
-**Reviewed:** 2026-10-22
-**Review type:** Static repository inspection, frontend/backend checks, M1.9 browser validation, and M2.4 static plus disposable-MySQL migration validation. No commands targeted the running application database.
+**Reviewed:** 2026-10-23
+**Review type:** Static repository inspection, frontend/backend checks, M1.9 browser validation, M2.4 disposable-MySQL migration validation, and M2.8 error-contract tests. No commands targeted the running application database.
 **Status vocabulary:** *Present* means code exists; it does not mean the flow is verified end to end.
 
 ## Executive summary
@@ -41,7 +41,7 @@ The root `docker-compose.yml` defines MySQL, Nest, and Angular containers. `dock
 | Insights | Weekly/monthly/yearly summary and monthly week breakdown on API and UI | Summary boundaries, exact totals, category ordering, and controller response contract have focused tests; broader UI/API journey coverage remains |
 | Persistence | MySQL + Prisma; initial migration verified on disposable MySQL; amounts use Decimal(15,2) and exact decimal-string API values; Compose applies migration and seeds defaults; M1.9 verified one browser-created row in disposable MySQL | No authentication/owner authorization; broader journeys and existing-data migration/recovery remain unverified |
 | API readiness | `GET /health/ready` performs `SELECT 1`; Compose health-checks API and starts frontend only after readiness | Endpoint reports database reachability, not full application or frontend readiness |
-| Validation and errors | DTO validation, domain validator, exception filter, frontend interceptor/toasts | M2.2 transaction field rules and M2.3 merged PATCH validation have focused 400-path tests; some other error paths remain inconsistently surfaced and app state logs raw request errors |
+| Validation and errors | DTO validation, domain validator, exception filter, frontend interceptor/toasts | M2.2 transaction rules, M2.3 merged PATCH validation, and M2.8 persistence error mappings have focused tests; broader HTTP contract coverage remains |
 | Reset/recovery | No reset UI/endpoint found | Requirement remains unimplemented; safe reset semantics must be defined before implementation |
 | Accessibility/responsive behavior | Responsive layout rules and some ARIA labels | No demonstrated viewport, keyboard, or screen-reader verification |
 | CI / engineering checks | Workflow checks backend lint/test/build and frontend test/build plus npm audit | Local frontend/backend suites pass after recent changes; no successful remote run for the current commit has been verified; no branch protection is evidenced |

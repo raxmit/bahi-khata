@@ -194,6 +194,7 @@ M2.6 is complete with focused coverage for date bounds and inclusive filtering. 
 
 ### M2.8 Map persistence failures safely
 
+- **Status:** Done (2026-10-23). The global filter maps relation/write conflicts, not-found, pool/connectivity timeout, and unavailable database errors to safe responses. Unknown failures return generic responses; server logs contain only the method, route template, error class, and Prisma code. Frontend state logging records only status/type metadata. Contract and focused test evidence are in `docs/RELEASE_READINESS.md`.
 - **Task:** Normalize database-not-found/conflict/timeout/unavailable errors and ensure unknown errors do not leak SQL, credentials, or user data.
 - **Acceptance:** Error contract documents status/message; tests assert safe client response and useful server-side diagnostics without financial payload logging.
 - **Depends on:** M1.3, M1.7.

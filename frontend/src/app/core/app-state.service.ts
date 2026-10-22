@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { BehaviorSubject } from 'rxjs';
 import { Transaction, Category, Period } from './types';
 import { TransactionApiService } from './services/transaction-api.service';
@@ -17,7 +18,7 @@ export class AppStateService {
   refreshTransactions(): void {
     this.transactionApi.getAll().subscribe({
       next: (txs) => this.transactions$.next(txs),
-      error: (err) => console.error('Failed to load transactions', err),
+      error: (error: unknown) => this.logApiFailure('Failed to load transactions', error),
     });
   }
 
@@ -25,7 +26,7 @@ export class AppStateService {
   refreshCategories(): void {
     this.categoryApi.getAll().subscribe({
       next: (cats) => this.categories$.next(cats),
-      error: (err) => console.error('Failed to load categories', err),
+      error: (error: unknown) => this.logApiFailure('Failed to load categories', error),
     });
   }
 
@@ -37,5 +38,12 @@ export class AppStateService {
 
   setPeriod(period: Period): void {
     this.currentPeriod$.next(period);
+  }
+
+  private logApiFailure(context: string, error: unknown): void {
+    const details = error instanceof HttpErrorResponse
+      ? { status: error.status }
+      : { errorType: error instanceof Error ? error.name : typeof error };
+    console.error(context, details);
   }
 }

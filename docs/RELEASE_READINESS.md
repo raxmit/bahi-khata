@@ -248,6 +248,37 @@ From `backend/`:
 
 The test plugin emitted a non-failing notice that `vite-tsconfig-paths` can be replaced by Vite's native path resolution. No database, Compose, push, or deployment command was run.
 
+## M2.8 persistence error contract
+
+The global API error body is `{ statusCode, message, path, timestamp }`. `path` is the matched route template (or `<unmatched>`), never the raw URL or query string.
+
+| Failure | HTTP | Client message |
+|---|---:|---|
+| Unique constraint (`P2002`) | 409 | `A record with this value already exists` |
+| Relation constraint (`P2003`, `P2014`) or write conflict (`P2034`) | 409 | `The operation conflicts with an existing record or change` |
+| Record missing (`P2025`) | 404 | `Record not found` |
+| Operation/pool/connect timeout or unavailable/closed connection (`P1001`, `P1002`, `P1008`, `P1017`, `P1018`, `P2024`) | 503 | `The persistence service is temporarily unavailable` |
+| Other known Prisma persistence error | 500 | `Database operation failed` |
+| Prisma validation error | 400 | `Invalid data provided` |
+| Unknown failure | 500 | `An unexpected error occurred` |
+
+Server diagnostics for unexpected and persistence failures contain only the HTTP method, route template, error class, and Prisma code when available. They omit exception messages, stacks, metadata, request query values, and financial payloads. Frontend app-state error logs contain only the operation context and HTTP status (or non-HTTP error type); they do not log the response body.
+
+Focused backend filter tests assert status/message/path mappings, safe generic unknown-error responses, and diagnostic content without sentinel payloads. The frontend app-state test asserts response bodies are omitted from console logging. All test data is synthetic; no database or Compose operation is needed for these checks.
+
+Exact local checks:
+
+| Directory | Command | Result |
+|---|---|---|
+| `backend/` | `npm.cmd test` | Pass: 17 files, 122 tests, including 17 exception-filter tests. |
+| `backend/` | `npm.cmd test -- src/common/all-exceptions.filter.spec.ts` | Pass: 1 file, 17 tests, including P2014 conflict mapping. |
+| `backend/` | `npm.cmd run lint` | Pass, exit 0. |
+| `backend/` | `npm.cmd run build` | Pass, exit 0. |
+| `frontend/` | `npm.cmd test -- --watch=false` | Pass: 5 files, 15 tests, including app-state error-log redaction. |
+| `frontend/` | `npm.cmd run build` | Pass, exit 0. |
+
+The backend test runner failed inside the sandbox with Windows `spawn EPERM` before loading; both final backend test runs passed outside the sandbox. Vitest emitted a non-failing `vite-tsconfig-paths` notice. No database, Compose, commit, push, or deployment operation was run.
+
 ## Safe next readiness work
 
 1. Implement and verify authentication plus single-owner authorization before any network exposure; replace or safely disable placeholder instrumentation credentials.
