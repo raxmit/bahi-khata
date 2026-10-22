@@ -21,7 +21,7 @@ The implementation coordinator in the separate terminal owns routine implementat
 ## Review and user handoff
 
 - Report implementation, review, verification, and approval statuses separately. Distinguish coordinator-reported results from checks you independently ran; name any checks that could not be run and why.
-- If you find a defect or missing evidence, explain it to the user and provide a bounded correction request they can pass to the coordinator. Do not contact the coordinator directly or edit its implementation concurrently.
+- If you find a defect or missing evidence, explain it to the user and include an exact, ready-to-copy correction prompt they can pass to the coordinator (unless the user prefers to phrase it themselves). Keep the prompt bounded to the finding, requested change, verification, and handoff. Do not contact the coordinator directly or edit its implementation concurrently.
 - When useful, give the user concrete steps to validate the completed behavior, including where to run them, prerequisites, and expected results. Do not direct them to start Compose or access a database unless the necessary approval is in place.
 - Recommend the next eligible action based on the approved plan and current evidence. Ask the user only for material decisions, required approvals, or genuine blockers.
 
