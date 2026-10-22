@@ -234,6 +234,20 @@ Exact checks from the repository root (commands run in the noted package directo
 
 No database, Compose, push, or deployment command was run for M2.5/M2.6. The app Compose stack remains outside this verification and requires its own approval before startup or database operations.
 
+## M2.7 summary period contract
+
+Summary service tests cover empty prior and future months, February 2024 leap-day bounds, a weekly period crossing the year boundary, month-clamped May 2026 buckets, exact Decimal totals, and category totals ordered descending. The monthly week totals are checked against the full monthly total. A controller-level contract test combines the real summarizer with synthetic repository records and asserts inclusive bounds, exact decimal strings, category breakdown ordering, and the complete JSON response shape. No code change to summary arithmetic or database schema was needed.
+
+From `backend/`:
+
+| Command | Result |
+|---|---|
+| `npm.cmd test -- src/summary/summarizer.service.spec.ts src/summary/summary.controller.spec.ts` | Pass: 2 files, 13 tests. The sandbox attempt failed before loading Vitest with Windows `spawn EPERM`; after the test fixture import was corrected, the command passed outside the sandbox. |
+| `npm.cmd run lint` | Pass, exit 0. |
+| `npm.cmd run build` | Pass, exit 0. |
+
+The test plugin emitted a non-failing notice that `vite-tsconfig-paths` can be replaced by Vite's native path resolution. No database, Compose, push, or deployment command was run.
+
 ## Safe next readiness work
 
 1. Implement and verify authentication plus single-owner authorization before any network exposure; replace or safely disable placeholder instrumentation credentials.

@@ -147,7 +147,7 @@ These questions materially affect architecture. The coordinator should prepare a
 - **Acceptance:** Requirements state whether a date is interpreted in user timezone or a fixed app timezone, with examples for week/month/year edges.
 - **Depends on:** M0.2, M0.5.
 
-M2.6 is complete with focused coverage for date bounds and inclusive filtering. The date-specific portions of M2.7 (calendar summary boundaries/monthly buckets) are implemented with focused tests; its other acceptance criteria remain open.
+M2.6 is complete with focused coverage for date bounds and inclusive filtering. M2.7 summary period boundaries, monthly buckets, exact totals, ordering, and controller response contract are covered by focused tests; see [RELEASE_READINESS.md](RELEASE_READINESS.md#m27-summary-period-contract).
 
 ### M2.2 Validate transaction DTO and business rules
 
@@ -187,6 +187,7 @@ M2.6 is complete with focused coverage for date bounds and inclusive filtering. 
 
 ### M2.7 Verify period summaries and monthly week buckets
 
+- **Status:** Done (2026-10-22). Service tests cover prior/future empty periods, leap-month boundaries, weekly year crossover, month-clamped buckets, exact Decimal totals, and descending category totals. Controller coverage verifies the exact monthly JSON contract with inclusive leap-day bounds; evidence is in `docs/RELEASE_READINESS.md`.
 - **Task:** Test empty periods, prior/future periods, leap years, month edges, week/year crossover, ordering, and exact totals under chosen timezone/currency rules.
 - **Acceptance:** Service tests cover boundaries and API tests match the documented contract.
 - **Depends on:** M2.1, M2.5.

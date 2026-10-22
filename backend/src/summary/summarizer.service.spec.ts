@@ -58,6 +58,31 @@ describe('SummarizerService date and exact INR semantics', () => {
     });
   });
 
+  it.each([
+    ['prior empty month', 'monthly', '2020-02-15', '2020-02-01', '2020-02-29'],
+    ['future empty month', 'monthly', '2030-11-01', '2030-11-01', '2030-11-30'],
+  ] as const)(
+    'returns exact zero totals and empty breakdown for a %s',
+    (_label, period, referenceDate, startDate, endDate) => {
+      const result = summarizer.summarize(
+        [transaction('2026-03-01', '99.99')],
+        period,
+        referenceDate,
+      );
+
+      expect(result).toMatchObject({
+        period,
+        startDate,
+        endDate,
+        totalIncome: '0.00',
+        totalExpenses: '0.00',
+        netBalance: '0.00',
+        categoryBreakdown: [],
+        isEmpty: true,
+      });
+    },
+  );
+
   it('counts cross-year weekly dates once in ISO Monday-Sunday range', () => {
     const result = summarizer.summarize(
       [
@@ -96,5 +121,25 @@ describe('SummarizerService date and exact INR semantics', () => {
     );
     expect(weeklyTotal.toFixed(2)).toBe(monthly.totalExpenses);
     expect(monthly.totalExpenses).toBe('1.00');
+  });
+
+  it('orders category totals and combines amounts for the same category ID', () => {
+    const result = summarizer.summarize(
+      [
+        transaction('2026-03-01', '0.10', 'Expense', 'Food'),
+        transaction('2026-03-02', '5.00', 'Income', 'Salary'),
+        transaction('2026-03-03', '0.20', 'Expense', 'Food'),
+        transaction('2026-03-04', '1.00', 'Expense', 'Rent'),
+      ],
+      'monthly',
+      '2026-03-15',
+    );
+
+    expect(result.categoryBreakdown).toEqual([
+      expect.objectContaining({ categoryId: 'salary', type: 'Income', total: '5.00' }),
+      expect.objectContaining({ categoryId: 'rent', type: 'Expense', total: '1.00' }),
+      expect.objectContaining({ categoryId: 'food', type: 'Expense', total: '0.30' }),
+    ]);
+    expect(result).toMatchObject({ totalIncome: '5.00', totalExpenses: '1.30', netBalance: '3.70' });
   });
 });
