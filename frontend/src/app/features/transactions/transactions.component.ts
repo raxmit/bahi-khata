@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { AbstractControl, ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angular/forms';
 import { TransactionApiService } from '../../core/services/transaction-api.service';
 import { AppStateService } from '../../core/app-state.service';
@@ -70,6 +71,9 @@ import {
         <button type="submit" class="btn btn-primary" [disabled]="form.invalid || submitting()">
           {{ submitting() ? 'Saving…' : 'Add Transaction' }}
         </button>
+        @if (submitError()) {
+          <p class="error-msg" role="alert">{{ submitError() }}</p>
+        }
       </form>
     </section>
 
@@ -166,6 +170,7 @@ export class TransactionsComponent implements OnInit {
 
   today = todayInAppTimeZone();
   submitting = signal(false);
+  submitError = signal('');
   displayedTransactions = signal<Transaction[]>([]);
   dateRangeError = signal(false);
   isFiltered = signal(false);
@@ -203,9 +208,11 @@ export class TransactionsComponent implements OnInit {
   }
 
   onSubmit(): void {
+    if (this.submitting()) return;
     this.form.markAllAsTouched();
     if (this.form.invalid) return;
 
+    this.submitError.set('');
     this.submitting.set(true);
     const val = this.form.value;
     this.api.create({
@@ -221,8 +228,34 @@ export class TransactionsComponent implements OnInit {
         this.state.refreshTransactions();
         this.submitting.set(false);
       },
-      error: () => this.submitting.set(false),
+      error: (error: unknown) => {
+        this.submitting.set(false);
+        this.submitError.set(this.createErrorMessage(error));
+      },
     });
+  }
+
+  private createErrorMessage(error: unknown): string {
+    if (!(error instanceof HttpErrorResponse)) {
+      return 'Transaction could not be saved. Your entries are preserved; please try again.';
+    }
+
+    if (error.status === 0) {
+      return 'Could not reach the server. Check your connection and try again; your entries are preserved.';
+    }
+    if (error.status === 400) {
+      return 'Transaction was rejected. Check the amount, type, category, and date, then try again.';
+    }
+    if (error.status === 404) {
+      return 'The selected category could not be found. Choose a category and try again.';
+    }
+    if (error.status === 409) {
+      return 'A conflict prevented saving this transaction. Review the entry and try again.';
+    }
+    if (error.status === 503 || error.status >= 500) {
+      return 'The service could not save the transaction. Try again shortly; your entries are preserved.';
+    }
+    return 'Transaction could not be saved. Your entries are preserved; please try again.';
   }
 
   formatMoney(amount: string): string { return formatRupees(amount); }

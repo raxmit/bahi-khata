@@ -1,7 +1,7 @@
 ﻿# Bahi Khata: Project State
 
 **Reviewed:** 2026-10-23
-**Review type:** Static repository inspection, frontend/backend checks, M1.9 browser validation, M2.4 disposable-MySQL migration validation, and M2.8 error-contract tests. No commands targeted the running application database.
+**Review type:** Static repository inspection, frontend/backend checks, M1.9 browser validation, M2.4 disposable-MySQL migration validation, M2.8 error-contract tests, and M3.1 component journey tests. No commands targeted the running application database.
 **Status vocabulary:** *Present* means code exists; it does not mean the flow is verified end to end.
 
 ## Executive summary
@@ -35,7 +35,7 @@ The root `docker-compose.yml` defines MySQL, Nest, and Angular containers. `dock
 | Area | Present in code | Main gap before it is dependable |
 |---|---|---|
 | App shell and navigation | Lazy routes for four pages; responsive side/bottom navigation; toast component; `/api` dev proxy | M1.9 verified dashboard and same-origin browser requests through Compose to the real API/database; accessibility and viewport checks remain open |
-| Transaction create/list/delete | API endpoints, repository, validator, create form, list, delete confirmation | M1.9 verified one synthetic create/list journey; M2.3 validates sparse PATCH requests; M2.4 migration and FK were verified on disposable MySQL, but API-to-database category type enforcement is not yet exercised end to end; no edit UI |
+| Transaction create/list/delete | API endpoints, repository, validator, create form, list, delete confirmation | M1.9 verified one synthetic create/list journey; M3.1 adds tested loading, failure-retention, duplicate-submit, and success-refresh behavior; M2.4 migration/FK were verified on disposable MySQL, but API-to-database category type enforcement remains unverified; no edit UI |
 | Categories | API create/list/rename/delete; default categories protected; idempotent seed runs at local startup; sorted lists | M2.4 preserves category identity across rename and blocks deletion while referenced; migration/FK verified on disposable MySQL; user-facing transaction reassignment UI is not available |
 | Filters | Backend supports type, category ID array, and inclusive date bounds; `GET /transactions` consistently returns `{matches, hasResults}` with or without filters | UI only filters local state by type/date; no category filter |
 | Insights | Weekly/monthly/yearly summary and monthly week breakdown on API and UI | Summary boundaries, exact totals, category ordering, and controller response contract have focused tests; broader UI/API journey coverage remains |
@@ -64,9 +64,9 @@ The root `docker-compose.yml` defines MySQL, Nest, and Angular containers. `dock
 
 ## Tests found
 
-- Backend unit: 101 tests across 16 files, including exact amount/date regressions, DTO and controller validation, category ID integrity, repository mapping, filters/summaries, fresh/repeated seeding, readiness, and safe startup failure behavior.
+- Backend unit: 122 tests across 17 files, including exact amount/date regressions, DTO and controller validation, category ID integrity, repository mapping, filters/summaries, persistence error mapping, fresh/repeated seeding, readiness, and safe startup failure behavior.
 - Backend e2e: one root-route test that imports the full application module.
-- Frontend unit: 14 tests across 4 files, including civil-date boundary behavior, exact INR validation/formatting, app shell, and API route coverage.
+- Frontend unit: 24 tests across 6 files, including civil-date boundary behavior, exact INR validation/formatting, app shell, API route coverage, safe error logging, and transaction-create feedback.
 - Focused backend validator, DTO, controller, repository, filter, and summarizer tests now exist; component-level and broader HTTP contract coverage remains limited.
 - No property-based tests were found despite `fast-check` being a dependency and tests being described in the design/task spec.
 

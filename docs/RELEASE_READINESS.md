@@ -279,6 +279,25 @@ Exact local checks:
 
 The backend test runner failed inside the sandbox with Windows `spawn EPERM` before loading; both final backend test runs passed outside the sandbox. Vitest emitted a non-failing `vite-tsconfig-paths` notice. No database, Compose, commit, push, or deployment operation was run.
 
+## M3.1 transaction creation feedback
+
+The transaction form disables its submit button and displays a saving label while create is pending; `onSubmit` also rejects duplicate calls during that request. A failed create keeps all form values, stops the pending state, and shows a form-level retry message selected from the HTTP status only; the server response body is not displayed in this message. Component cases cover network failure (status 0), 400, 404, 409, 500, 503, and non-HTTP errors; each asserts retained values and no response/error detail in the rendered alert. Success clears the form and refreshes transaction state once, displaying the synthetic saved row once.
+
+Compose was not started. Its backend command invokes `npm run start:local`, which runs `prisma migrate deploy` and `prisma db seed` against the MySQL service's mounted `mysql_data` volume. Starting it would therefore add database-backed evidence only by opening the existing app database to migration/seeding behavior. The isolated Angular component test provides useful UI behavior evidence without that database risk; a browser-to-real-API Compose journey remains outside this validation.
+
+Exact local checks:
+
+| Directory | Command | Result |
+|---|---|---|
+| `frontend/` | `npm.cmd test -- --watch=false` | Pass: 6 files, 24 tests. |
+| `frontend/` | `npm.cmd run build` | Pass, exit 0. |
+| `backend/` | `npm.cmd test` | Pass: 17 files, 122 tests. Backend code was unchanged by M3.1. |
+| `backend/` | `npm.cmd run lint` | Pass, exit 0. |
+| `backend/` | `npm.cmd run build` | Pass, exit 0. |
+| Repository root | `git diff --check` | Pass, exit 0. |
+
+An initial focused Angular CLI invocation with a file path was rejected as an unknown `watch` argument. The first full frontend test attempt then caught an incorrect Angular import, and the next caught an incorrect expectation for the form's nullable reset value; both were corrected. The final full frontend test command ran the component spec with the rest of the suite and passed. No database, Compose, commit, push, or deployment operation was run.
+
 ## Safe next readiness work
 
 1. Implement and verify authentication plus single-owner authorization before any network exposure; replace or safely disable placeholder instrumentation credentials.

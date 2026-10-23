@@ -203,6 +203,7 @@ M2.6 is complete with focused coverage for date bounds and inclusive filtering. 
 
 ### M3.1 Complete transaction creation feedback
 
+- **Status:** Done (2026-10-23). The form disables and labels the submit action while pending, rejects duplicate submits, retains entered values with status-based retry guidance on failure, and refreshes transaction state only after a successful create. Component tests cover failure, pending, duplicate submission, success, and one displayed row; results are in `docs/RELEASE_READINESS.md`.
 - **Task:** Connect form success/failure/loading state to API; preserve entered values on failure and refresh the list only after success.
 - **Acceptance:** Valid create appears once; rejected/unavailable requests preserve the form and show an actionable error.
 - **Depends on:** M1.3, M2.2, M2.8.
